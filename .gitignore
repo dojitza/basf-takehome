@@ -5,3 +5,7 @@ coverage/
 .env.*
 !.env.example
 .DS_Store
+**/.angular/
+**/out-tsc/
+*.tsbuildinfo
+apps/web/src/primeng-license.local.ts

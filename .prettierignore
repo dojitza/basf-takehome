@@ -1,0 +1,12 @@
+node_modules
+**/dist
+**/coverage
+**/.angular
+package-lock.json
+ASSIGNMENT.md
+data/products.csv
+AI_USAGE.md
+docs/
+AGENTS.md
+RESUME.md
+apps/web/src/primeng-license.local.ts

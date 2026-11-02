@@ -1,43 +1,47 @@
 # Decisions
 
-Working outline for the required 1–3-page submission. No application architecture or feature scope has been agreed or implemented. Entries below distinguish supplied constraints, open choices and observed risks.
+## Scope and status
 
-## Architecture overview
+The human approved a buildable, runnable foundation before product features. This phase wires the required technologies and verification tooling. Product discovery, details, reviews, CSV import and domain migrations remain future work. Technical checks do not imply human acceptance or completion of the assignment.
 
-The supplied assignment fixes Angular, TypeScript, SCSS and PrimeNG for the frontend; Node.js, NestJS and TypeScript for the backend; PostgreSQL and Prisma for persistence; Jest for frontend and backend tests; and Docker / Docker Compose and Git for tooling.
+## Architecture
 
-These are assignment constraints, not architecture choices made by the candidate. Repository layout, application boundaries, API, schema and runtime setup remain open.
+One npm-workspace repository contains an Angular application (`apps/web`) and a NestJS API (`apps/api`). PostgreSQL is accessed through Prisma. The frontend uses standalone components, routing, SCSS and PrimeNG Community. Docker Compose runs PostgreSQL, the API and an Nginx web container. In containers, Nginx serves the production Angular build and proxies `/api`; Angular's local development proxy uses the same API path.
 
-## Significant decisions and alternatives
+Local development uses the same PostgreSQL engine in Compose and runs both application watchers on the host. `npm run dev` starts and waits for the database; its volume persists after the watchers stop. Integration tests use a separate disposable PostgreSQL container. SQLite would remove the Docker dependency, but Prisma migrations are provider-specific and a second database would introduce divergence and maintenance for a PostgreSQL assignment.
 
-Application decisions are pending discussion. Record each significant choice with its context, alternatives, rationale, consequences and implementation/verification status.
+The framework, database, ORM, styling, test runner and Docker requirements are supplied constraints. The choices below concern how we connect them.
 
-## Assumptions requiring agreement
+## Foundation choices and trade-offs
 
-- Product availability: discovery visibility, phase-out behavior and old links to discontinued products.
-- Import semantics: conflicting duplicate SKUs, incomplete values and products absent from a subsequent export.
-- Discovery: search fields and matching, filter combinations, ordering, pagination and shareable URL state.
-- Reviews: required fields, rating validation, reviewer identity and behavior without authentication.
+| Choice                                                         | Alternatives and rationale                                                                                                                                 | Consequence                                                                                                                                       |
+| -------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| npm workspaces with one lockfile                               | Separate installs duplicate tooling; Nx adds orchestration beyond the current two-app need. npm already exists in the environment.                         | Root commands coordinate framework-specific builds; boundaries remain explicit.                                                                   |
+| Client-rendered Angular with routing                           | SSR is unnecessary for the initial interactive finder scope; no SEO requirement is stated.                                                                 | Shared/deep links need SPA fallback, configured in Nginx. Product URL semantics remain open.                                                      |
+| One browser origin with `/api` proxying                        | Separate browser origins require additional CORS/environment setup.                                                                                        | Both local and container paths use `/api`; no permissive CORS configuration is introduced.                                                        |
+| NestJS 12 ESM and Jest                                         | The current Nest generator defaults to Vitest, contrary to the brief. The initial CommonJS test setup failed against ESM-only NestJS 12 and was corrected. | API sources use ESM with explicit `.js` relative import paths; Jest uses Node's experimental VM-module support.                                   |
+| Prisma 7.10.1 with PostgreSQL adapter                          | Prisma's npm latest tag resolved to an 8.0 release candidate during bootstrap.                                                                             | Stable Prisma/client/adapter versions are pinned together; upgrades require checking compatibility.                                               |
+| Node 22.22.3 pinned locally and in Docker                      | A runtime range alone makes local/container differences harder to reproduce.                                                                               | Angular 22 compatibility is respected; npm lockfile pins the installed dependency graph.                                                          |
+| Database readiness through Prisma                              | A static health response would not demonstrate database wiring.                                                                                            | `/api/health` runs `SELECT 1`, with short connection/query timeouts and a generic 503 on failure. No schema tables are needed.                    |
+| Explicit configuration validation                              | Defaults that silently hide a missing runtime database URL make setup errors harder to diagnose.                                                           | API startup rejects missing/invalid DATABASE_URL or PORT. Prisma generation has a documented local fallback and does not connect to the database. |
+| Local PostgreSQL volume and container dependency health checks | An external managed database complicates reviewer setup.                                                                                                   | Compose starts from an empty database and preserves it across normal shutdown. Credentials are local defaults.                                    |
 
-These are open questions, not accepted assumptions or committed scope.
+## Angular and PrimeNG compatibility and licensing
 
-## Risks and evidence
+Keep Angular 22 and PrimeNG 22 together: the assignment requires the latest stable Angular and PrimeNG, and the current PrimeNG 22 peer dependencies support Angular 22. PrimeNG 21 is MIT-licensed and avoids the Community key, but declares Angular 21 peer dependencies; using it with Angular 22 would introduce an unsupported compatibility combination. PrimeNG 22.1.4 is pinned in the frontend package; the lockfile records the installed Angular 22 versions.
 
-- The supplied CSV contains 202 records and 200 unique SKUs, including an identical duplicate and conflicting statuses for one SKU, inconsistent formatting and missing values. Handling policy is undecided; see [evaluation analysis](docs/agent/evaluation-priorities.md).
-- The import must work on an empty migrated database, be repeatable and preserve user reviews. No implementation or verification exists yet.
-- Growth toward 50,000 products requires considering bounded queries, stable ordering and appropriate indexes. Specific techniques and performance verification remain open.
-- Public review submission without authentication raises integrity and abuse questions. Authentication and moderation workflows are excluded by the assignment; remaining mitigations have not been selected.
+**Licensing risk:** PrimeNG 22 requires a license key, including for the Community offering. Confirm whether the relevant company already holds a suitable license; if not, reevaluate the dependency and licensing options before organizational use. Company licensing and eligibility have not been verified. The human selected Community for this take-home and will supply a key. No Pro components are used. An ignored local TypeScript configuration is initialized with an empty value and passed to PrimeNG's documented `license` option. A real key can be added without a tracked change; it is client-visible after compilation. Missing-key behavior remains intact. A valid key has not yet been verified.
 
-## Scope and deliberate omissions
+## Testing and delivery
 
-No delivery scope has been agreed yet. The assignment excludes authentication and application write flows other than reviews, including comments, sample requests, contact forms, email and moderation workflows. These exclusions come from the brief rather than candidate prioritization.
+Jest is configured in both applications. Focused checks cover shell/PrimeNG rendering, environment validation, generic database-failure behavior and HTTP readiness against real PostgreSQL. Production builds exercise the frontend/backend compiler toolchains. ESLint includes Angular template/accessibility rules; Prettier provides consistent formatting. CI reuses the root commands and adds Compose startup and an integration test. Local evidence is recorded in the agent development log; hosted CI has not been observed yet.
 
-Record candidate-selected omissions and their reasoning here once agreed.
+## Deferred decisions and risks
 
-## Next steps toward production
-
-Pending the initial scope and design. This section will distinguish necessary production work from optional improvements and describe remaining risks without implying that controls or features already exist.
-
-## Verification status
-
-Only assignment/data inspection and documentation checks have been performed. No application, migration, import or test behavior has been implemented or verified.
+- Product identity, status normalization, conflicting CSV duplicates, missing values and records absent from subsequent exports need agreement before the schema/import implementation. See [data analysis](docs/agent/evaluation-priorities.md).
+- Repeated imports must preserve reviews. Bootstrap database connectivity does not verify that future guarantee.
+- Search semantics, filter combinations, stable sorting, pagination, shareable URL state and indexes for 50,000 products are undecided.
+- Review fields, ratings and public submission validation are undecided. Authentication and moderation workflows are excluded by the assignment.
+- The initial container setup is for local evaluation. Production would require environment-specific credentials, TLS, deployment/migration policy and operational controls selected for the actual hosting environment.
+- Dependency audit at bootstrap reports no runtime vulnerabilities (`npm audit --omit=dev`); the full development tree reports 39 low/moderate findings propagated through test-tool dependencies (deepmerge, glob and minimatch). No forced major downgrade or unverified override was applied. Revisit as upstream fixes become available.
+- No shared contract package, generic repository abstraction, auth scaffolding, background scheduler or feature modules have been added without an immediate need. Domain contracts and module boundaries will follow agreed behavior.

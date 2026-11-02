@@ -1,0 +1,34 @@
+{
+  "name": "product-finder",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.22.3 <23",
+    "npm": ">=10 <11"
+  },
+  "packageManager": "npm@10.9.8",
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "dev": "node scripts/ensure-local-config.mjs && docker compose up -d --wait db && concurrently -k -n api,web \"npm run dev -w @product-finder/api\" \"npm run dev -w @product-finder/web\"",
+    "test": "npm run test --workspaces",
+    "test:integration": "docker compose --profile test up -d --wait test-db && DATABASE_URL=postgresql://product_finder:product_finder@localhost:5433/product_finder_test npm run test:integration -w @product-finder/api",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run lint && npm run format:check && npm test && npm run build",
+    "db:generate": "npm run db:generate -w @product-finder/api",
+    "postinstall": "node scripts/ensure-local-config.mjs && npm run db:generate"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "eslint": "^10.14.0",
+    "typescript-eslint": "^8.0.0",
+    "angular-eslint": "^22.0.0",
+    "prettier": "^3.8.1",
+    "concurrently": "^9.0.0",
+    "typescript": "~6.0.2"
+  }
+}

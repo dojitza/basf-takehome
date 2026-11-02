@@ -2,18 +2,18 @@
 
 ## Current state
 
-Repository contains the supplied assignment and CSV, documentation and agent guidance. No application, dependencies, migrations, seed or tests exist. Application scope and architecture remain undecided.
+The human approved and requested the bootstrap proposal, with PrimeNG Community and no product features. The repository now has npm workspaces for Angular 22 (`apps/web`) and NestJS 12 ESM (`apps/api`), Prisma 7.10.1, PostgreSQL Compose, Jest in both apps, ESLint/Prettier and CI configuration. Root README contains run/check instructions; DECISIONS.md describes foundation choices and outstanding domain decisions. ASSIGNMENT.md and data/products.csv are preserved.
 
-Required root documentation deliverables are initialized: README.md (pending runnable instructions), DECISIONS.md (working outline) and AI_USAGE.md (collaboration source log). The original assignment text was preserved verbatim in ASSIGNMENT.md before repurposing README.md at the human's request to initialize deliverables.
+The shell and readiness endpoint are infrastructure only. No products/reviews API or UI, domain models, migrations, seed/import command or feature behavior exists. Bootstrap does not complete the assignment's data-import requirements. Human review is pending.
 
-## Agreed working process
+## Working process and configuration
 
-Follow root AGENTS.md. Use small delivery slices: propose behavior and significant choices, discuss with the human, implement and verify, then present a reviewable result for human feedback. Routine implementation details do not need repeated approval.
+Follow root AGENTS.md. Propose acceptance behavior and material decisions, discuss, implement/verify, and return a reviewable result. Keep docs/human/ empty. AI_USAGE.md is the source log for all human steering and disagreements; do not duplicate those accounts here.
 
-Supporting documentation is grouped by audience under docs/agent/ and docs/human/. Keep docs/human/ empty until the human decides its use; a human-readable account of development, architecture and trade-offs is only a tentative direction. Root AI_USAGE.md holds source accounts of human steering and disagreements; the human will rewrite it for submission. Do not duplicate those accounts in other logs.
+The human will provide a PrimeNG Community key in ignored apps/web/src/primeng-license.local.ts (`primeNgLicenseKey`). Do not read or print that value. npm installation initializes a blank file only when absent. Missing-key notices remain until configured. Check the package's public types/documentation for configuration; do not inspect its restricted implementation to bypass licensing.
 
-See [testing strategy](testing-strategy.md) for the proposed development and test workflow.
+Use Node 22.22.3/npm 10. Root `npm run check` runs lint, format check, Jest and production builds. `npm run dev` creates missing local configuration, starts Compose PostgreSQL and launches local watchers. `npm run test:integration` starts an isolated disposable PostgreSQL container on port 5433. Local API port is 3101, container API port is 3100; port 3000 belongs to an unrelated service. Web ports: development 4200, Compose 8180. No migrations or import exist yet.
 
-## Next work
+## Continuation
 
-Agree initial scope, priorities, material assumptions and representative acceptance behavior before application implementation. The analysis in evaluation-priorities.md is advisory, not an agreed scope or architecture. No application implementation has been authorized yet.
+Consult dev.log.md for exact verification evidence/status and testing-strategy.md for the planned development and Playwright workflow. Bootstrap verification passed locally (see dev.log.md). Agree the next feature slice and its behavior with the human; domain assumptions listed in DECISIONS.md are still open.

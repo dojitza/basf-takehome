@@ -1,5 +1,6 @@
 # To do
 
-- Agree the initial scope and technical decisions.
-- Build and document the requested solution when directed.
-- Maintain the assignment's decision and AI-usage deliverables.
+- Review the locally verified bootstrap and add the PrimeNG Community key.
+- Agree the first product slice, domain assumptions and representative acceptance behavior.
+- Implement and verify domain migrations, repeatable CSV import and review preservation in later iterations.
+- Continue maintaining DECISIONS.md and the AI_USAGE.md source log.

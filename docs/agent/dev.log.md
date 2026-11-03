@@ -176,3 +176,7 @@ Following human review, converted the supplied logo from embedded CMYK to sRGB P
 Aligned the filter/sort panel title beside the close button by giving the shared heading the available space on its right; reset remains on the right.
 
 Moved the mobile search hint into the input placeholder and placed the close button alongside it; retained a visually hidden label for assistive technology.
+
+Aligned the Product Finder header title to the right of the header content area, opposite the BASF logo. Inspected the running app in Chromium at 390px and 1280px; human review is pending.
+
+Adjusted the title's right inset to match the approximately 15px of background built into the left side of the displayed logo.

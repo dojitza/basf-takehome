@@ -312,3 +312,7 @@ The human confirmed that the logo now renders, but its background appears slight
 The human requested that the filter and sort panel titles align left next to the close button instead of sitting centered between close and reset. Updated the shared panel header layout; other pending changes were preserved.
 
 The human requested moving the mobile search label into the field as a hint and moving the close control to the right of the field. Codex kept a visually hidden accessible label, added the placeholder and placed an explicitly labelled close button alongside the input.
+
+The human asked to align “Product Finder” to the right of the header; it previously sat next to the logo. Codex adjusted the header layout so the logo and title occupy opposite ends of the content area.
+
+The human asked for the title's right spacing to match the visible left spacing of the logo. Codex accounted for the inset baked into the logo image when aligning the title.

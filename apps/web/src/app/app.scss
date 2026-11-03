@@ -13,12 +13,17 @@
   font-size: 1.1rem;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 1rem;
 }
 .header-inner img {
   display: block;
   width: 120px;
   height: auto;
+}
+.header-inner strong {
+  // Match the visible inset inside the supplied logo at its displayed width.
+  margin-right: 15px;
 }
 main {
   max-width: 76rem;

@@ -171,3 +171,106 @@ Codex used shell commands, Python file operations and apply_patch to inspect and
 
 - Human correction: the seed printed complete conflicting product rows to the console. The human asked for concise yellow warnings, at most three examples per error type with an indication of additional cases, and a detailed log file referenced in the output.
 - Result: grouped and limited console warnings, with yellow on supported interactive terminals; added a unique per-run detailed log and documented its location. Full conflict rows remain available in the log. Added integration checks for truncation, log contents, color, fatal errors and an unavailable log directory.
+
+## 2026-11-03 — Plan catalogue browsing with PrimeNG defaults
+
+- Human direction: begin a conversational plan for the next slice, first inspecting the default PrimeNG components and identifying what the team still needs to design. Inspected the installed public component types and PrimeNG documentation, then recorded a provisional component mapping and open decisions. No UI or feature behavior was implemented or approved.
+
+## 2026-11-03 — Discuss browsing architecture and brand reference
+
+- Human direction: a brand reference ZIP will follow to guide custom design alongside PrimeNG components; in the meantime, discuss the feature's general architecture and produce a Mermaid end-to-end flow. Added a proposed sequence diagram to the working plan. No brand reference has been received or applied, and the flow remains open for discussion.
+
+## 2026-11-03 — Inspect supplied brand reference
+
+- Human supplied `basf-digital-product-reference.zip` for inspection, following the plan to use it alongside PrimeNG defaults. Codex read its reference and example tokens directly from the archive and recorded their implications and limits in the working plan. No assets were extracted or applied, and no design decisions were approved.
+
+## 2026-11-03 — Inspect updated brand archive
+
+- Human provided an updated brand reference and asked for inspection. Codex inspected the updated guidance, nested asset inventories and logo previews. The new archive adds six raster logos and a PowerPoint reference; recorded their formats and the remaining questions in the plan. No assets were applied and no brand permissions or design choices were inferred.
+
+## 2026-11-03 — Check BASF font guidance
+
+- Human shared the official BASF font page. Codex checked the page against the supplied reference, noted its downloadable Roboto archive and the restrictions on New Helvetica, Roboto Variable/Condensed and Arial. The download's contents have not been inspected and no font has been installed or selected.
+
+## 2026-11-03 — Generate catalogue design alternatives
+
+- Human direction: use ImageGen to create three BASF-guidance-aligned design sets, each covering four primitives in a consistent visual language, for the human to choose from. Codex generated three concept boards, each with desktop/mobile layout, search, product results and availability indicators; they explore table/list, bordered cards and structured rows. Text, navigation and controls in the generated images are illustrative, not agreed functionality or verified catalogue data. No design has been selected or implemented.
+
+## 2026-11-03 — Reject space-heavy browsing concepts
+
+- Agent generated three catalogue concepts with prominent headings, explanatory copy, search areas, results headers and pagination. Human rejected all three because these elements consume screen space that should prioritize products, and asked whether they can be collapsed within BASF guidance and the assignment. Codex distinguished functional requirements from presentation choices; compact presentation remains to be designed and agreed. No new images were generated.
+
+## 2026-11-03 — Explore a denser catalogue concept
+
+- Human direction: retain the logo and blue header with navigation/hamburger, and generate one concept incorporating the requested denser layout. Codex used ImageGen with the prior concept and the supplied blue logo as references; the result explores a compact toolbar, product rows and load-more control. Generated logo, product data and navigation are illustrative; no design or functionality has been approved or implemented.
+
+## 2026-11-03 — Discuss result loading
+
+- Agent introduced a “Load more” control in the compact concept as an illustrative choice. Human questioned that choice, asked whether explicit pagination is clearer for B2B, and expressed a preference for infinite scrolling with good filtering over manual pages. Discussed trade-offs and accessibility; no loading interaction or filtering scope has been agreed or implemented.
+
+## 2026-11-03 — Choose accessible automatic loading
+
+- Human agreed to accessible infinite automatic loading and requested a revised design. Codex generated a compact desktop/mobile concept with in-flow loading feedback and a manual next-batch fallback, and updated the working plan. The exact visual treatment, fallback behavior and filtering scope remain open; no browsing feature has been implemented.
+
+## 2026-11-03 — Reconsider mobile filter controls
+
+- Agent's automatic-loading concept used separate filter and sort dropdowns on mobile. Human questioned whether dropdowns fit a mobile interface and asked for alternatives. Codex compared compact buttons, drawers and visible quick filters using PrimeNG primitives; no replacement or filter scope has been agreed or implemented.
+
+## 2026-11-03 — Compare mobile filter concepts
+
+- Human requested images of the alternative mobile controls discussed. Codex generated one comparison board showing separate filter/sort controls, a combined drawer, and quick filters. Example filter values and statuses are illustrative; no alternative has been chosen or implemented.
+
+## 2026-11-03 — Explore drawer and full-screen mobile search
+
+- Human preferred the drawer idea, proposed sort/filter pills and horizontally scrolling active selections, and asked for a full-screen search view with recent searches. Codex generated a three-screen concept illustrating the catalogue, filter/sort drawer and search view. Filter choices, persistence of recent searches and detailed interaction remain open; no UI has been implemented.
+
+## 2026-11-03 — Optimize drawer controls for mobile
+
+- Human liked the mobile drawer/search concept and directed that the drawer controls be optimized for mobile. Recorded the need for suitable touch targets, spacing, readable labels and viewport/keyboard handling in the plan; implementation remains pending.
+
+## 2026-11-03 — Preserve mobile design reference
+
+- Human asked to add the design reference to `docs/agent/`. Copied the latest generated mobile concept there and linked it from the working plan; the supplied brand archive remains separate.
+
+- Human additionally requested the desktop design reference. Copied the latest desktop concept into `docs/agent/` and linked it from the browsing plan; the image also contains an earlier mobile concept.
+
+## 2026-11-03 — Revisit desktop visual hierarchy
+
+- Human requested that the desktop reference show only the desktop view, and observed that the list feels busy and overuses the primary color. Codex generated a desktop-only reference based on the previous composite, replaced the reference image, and discussed ways to make names, metadata, status and actions clearer. Hierarchy changes remain proposals for discussion; no feature was implemented.
+
+## 2026-11-03 — Product result click target
+
+- Agent asked whether the product name alone or the entire result row should lead to details. Human chose the entire row. Recorded the direction and its keyboard/focus implications in the browsing plan; details navigation is not implemented.
+
+## 2026-11-03 — Revise desktop visual hierarchy
+
+- Human requested a revised design after choosing whole-row navigation and identifying excessive blue and visual noise. Codex used ImageGen to explore a calmer desktop list, then updated the reference in `docs/agent/`. The design remains illustrative and awaits human review; generated catalogue details are not verified.
+
+## 2026-11-03 — Remove invented navigation
+
+- Generated concepts included Products, Applications, Resources and Contact navigation without implemented destinations. Human questioned those links and directed us to design without that navigation. Codex confirmed the frontend route list is empty, regenerated desktop without the links and mobile without the corresponding hamburger, and updated the design references. Search-view back navigation remains. No application routes were added.
+
+## 2026-11-03 — Align mobile result styling
+
+- Human noticed that the mobile result list had not been aligned with the revised desktop colors. Codex acknowledged the omission, used ImageGen to align mobile row typography and availability treatments, and updated the reference. The image is illustrative and its filter selections and shown results are not a behavioral specification.
+
+## 2026-11-03 — Use design references pragmatically
+
+- Human clarified that the design images are references, not pixel-perfect targets. Implementation should lean heavily on PrimeNG components and existing behavior, using the references where PrimeNG does not provide an opinion or component. Recorded this direction in the browsing plan; no application code changed.
+
+## 2026-11-03 — Shareable views and frontend architecture
+
+- Agent proposed a lightweight end-to-end journey overview with separately shareable product and catalogue URLs, leaving exact shared scroll restoration open. Human agreed, preferred not to define detailed references yet, and added that an individual review should be shareable; the review flow remains undecided.
+- Human requested a frontend architecture proposal. Codex documented provisional routing, URL and transient state boundaries, API client, incremental loading, accessibility and testing in the browsing plan. No architecture or implementation details beyond the sharing direction have been approved.
+
+## 2026-11-03 — Define frontend test coverage
+
+- Human requested a rough frontend test plan distinguishing end-to-end, integration and unit tests. Codex outlined proposed boundaries and behavior in the working plan, conditional on the eventual slice scope; no tests or application code were implemented and the proposed list has not been approved.
+
+## 2026-11-03 — Expand browsing test coverage
+
+- The initial test outline emphasized frontend behavior with a few browser journeys. Human requested a fuller behavior list across frontend, backend, integration and Playwright, with sufficient coverage and short runtime, explicitly without implementing tests. Codex expanded and linked a behavioral test list, assigning cases to boundaries, preserving unresolved product decisions and keeping details/reviews conditional. No test code was written or run, no agents were delegated work, and runtime remains unmeasured.
+
+## 2026-11-03 — Commit the plan and start test-first browsing
+
+- Human requested logging deferred tests, committing the browsing plan, and then implementing the test list. Codex recorded later detail/review, optional recent-search, performance and accessibility coverage in TODO.md, and prepared a scoped plan commit. The request authorizes test implementation; unagreed product behavior and interfaces remain provisional.

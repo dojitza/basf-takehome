@@ -16,4 +16,4 @@ Use Node 22.22.3/npm 10. Root `npm run check` runs lint, format check, Jest and 
 
 ## Continuation
 
-Consult dev.log.md for exact verification evidence/status and testing-strategy.md for the planned development and Playwright workflow. Bootstrap verification passed locally (see dev.log.md). The import-only slice is agreed in DECISIONS.md. Parser and isolated PostgreSQL/seed tests cover the agreed import behavior; consult dev.log.md for verification. Review preservation remains for the review slice.
+Consult dev.log.md for exact verification evidence/status and testing-strategy.md for the planned development and Playwright workflow. Bootstrap verification passed locally (see dev.log.md). The import is implemented and tested. The next catalogue-browsing slice is under discussion in catalogue-browsing-plan.md; catalogue-browsing-tests.md lists the requested tests. Conditional and later tests are tracked in TODO.md. Domain behavior and API details not yet agreed are marked open.

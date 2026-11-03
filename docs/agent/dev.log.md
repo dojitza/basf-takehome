@@ -100,3 +100,43 @@ The first integration run exposed timezone interpretation of timestamps; changed
 Grouped console warnings by type, showing up to three concise examples and an omitted count. Interactive stderr uses yellow unless NO_COLOR is set; redirected output remains plain. Each seed attempt creates an ignored per-run log under `logs/` by default, with full diagnostic details and fatal errors; `IMPORT_LOG_DIR` overrides its directory. A log creation failure stops before import; if the final log write fails after commit, the command explicitly reports that the database change already completed. README documents these semantics.
 
 Verification: `npm run check` passed lint, formatting, 60 unit tests and both builds. `npm run test:integration` passed 16 tests in 2.769 s, including warning limits by category, color, full log contents, fatal error logs and refusal to import when a log cannot be created. Test logs were isolated in a temporary directory and removed. README changed after the full check to clarify the post-commit log failure case.
+
+## 2026-11-03 — Catalogue browsing planning
+
+Started [the catalogue browsing working plan](catalogue-browsing-plan.md), covering PrimeNG default building blocks, product design and technical decisions still open, and representative proposed behavior. Inspected installed PrimeNG public types and official component documentation. Planning only; no tests run and no slice behavior approved or implemented.
+
+Added a proposed end-to-end browsing sequence to the working plan, from Angular through NestJS and PostgreSQL, including validation, results, empty and failure states. A brand reference is expected later; no visual design or feature implementation was performed. No tests run.
+
+Inspected the supplied brand-reference ZIP: it contains a secondary guidance README and example CSS tokens, with no logos or font files. Updated the working plan to distinguish corporate colors from suggested UI tokens, note accessibility and authorization constraints, and leave theme and layout choices open. Archive left intact; no application changes or tests.
+
+Inspected the replacement brand archive and its nested ZIPs. It adds six 1181×591 CMYK JPEG logo variants and a 16:9 PowerPoint template; visual inspection shows white lockups on colored rectangles, while the reference describes them as intended for white backgrounds. Updated the plan to flag intended use and digital suitability for discussion. No assets applied; no tests run.
+
+Checked the human-provided official BASF font page. It allows Roboto for digital applications and links a Roboto archive; it requests the static version, restricts variable and condensed variants, and restricts Arial outside office/Microsoft contexts. Updated the working plan; the ZIP content was not inspected and no font was installed. No tests run.
+
+Generated three ImageGen concept boards for desktop/mobile catalogue layout, search, product results and availability indicators. They illustrate compact table/list, bordered cards and structured rows using the supplied brand direction; generated copy and controls are illustrative. No visual design has been selected or implemented.
+
+The human chose accessible automatic incremental result loading and requested a revised design. Generated one desktop/mobile ImageGen concept with an in-flow loading indicator and an illustrative manual next-batch fallback. Updated the browsing plan; detailed interaction and implementation remain open. No feature code or tests changed.
+
+Generated a three-screen mobile exploration for the human's proposed filter/sort drawer, horizontally scrolling selection pills and full-screen search with recent searches. The illustration uses placeholder product and filter data; detailed behavior and scope remain to be discussed. No application code or tests changed.
+
+Copied the latest generated mobile concept to `docs/agent/catalogue-mobile-design-reference.png` and linked it from the browsing plan as a visual reference, not an implemented specification. No application code changed; no tests run.
+
+Copied the desktop design reference (which also shows an earlier mobile concept) into `docs/agent/` and linked it in the browsing plan. Documentation only; no tests run.
+
+Replaced the composite desktop reference with an ImageGen desktop-only rendering of the same concept. The human identified excess visual noise and primary-color use; hierarchy refinements remain under discussion. No application code or tests changed.
+
+Updated the desktop design reference with an ImageGen revision exploring neutral row typography, less repeated color, restrained status labels and an illustrative whole-row hover state. Awaiting human review; no application behavior or tests changed.
+
+Removed invented navigation links from the desktop reference and the corresponding empty hamburger from the mobile reference; the full-screen search back control remains. Confirmed no frontend routes currently exist. No application code or tests changed.
+
+Revised the mobile design reference to align product-row hierarchy and status colors with the desktop concept. The generated image remains illustrative, including inconsistent example filter/result data; no feature implementation or tests changed.
+
+Recorded that design images are non-pixel-perfect references and that implementation should favor existing PrimeNG components and behavior, using the images to guide gaps in component or layout coverage. Documentation only; no tests run.
+
+Recorded agreed sharing direction for catalogue and product views and the human's desire for individually shareable reviews, while leaving review interaction and exact shared scroll restoration open. Added a proposed frontend architecture and testing boundaries to the browsing working plan. Discussion only; no application code or tests changed.
+
+Outlined proposed frontend Jest integration/unit and isolated Playwright coverage in the browsing plan, including URL state, loading, request races and mobile interaction, with detail/review cases deferred. Discussion only; no tests implemented or run.
+
+Expanded the proposed browsing coverage in [catalogue-browsing-tests.md](catalogue-browsing-tests.md): frontend state/component/router behavior, API validation and responses, real database search/filter/sort/batch semantics and five real-stack browser journeys. Marked unresolved contract decisions and conditional recent-search/detail/review cases; included duplication and runtime limits. Documentation only; no tests implemented or run.
+
+Recorded deferred browsing tests in TODO.md and prepared the browsing plan, behavior list and image references for a plan commit. The human requested test implementation after that commit; product behavior and API details that remain open must not be presented as approved. No test code or application feature was added in the plan commit.

@@ -88,6 +88,7 @@ export class App implements OnDestroy {
   error = false;
   warning = false;
   private loadedKey = '';
+  private searchBlurGeneration = 0;
 
   constructor() {
     this.subscriptions.add(
@@ -99,8 +100,12 @@ export class App implements OnDestroy {
           !['name', 'name-desc'].includes(sort);
         this.criteria = {
           search: (params.get('search') || '').trim(),
-          status: rawStatuses.filter((value) => statuses.includes(value)),
-          applicationArea: params.getAll('applicationArea').filter(Boolean),
+          status: [
+            ...new Set(rawStatuses.filter((value) => statuses.includes(value))),
+          ],
+          applicationArea: [
+            ...new Set(params.getAll('applicationArea').filter(Boolean)),
+          ],
           sort: ['name', 'name-desc'].includes(sort) ? sort : 'name',
         };
         this.searchInput = this.criteria.search;
@@ -111,6 +116,7 @@ export class App implements OnDestroy {
   }
   ngOnDestroy() {
     this.request?.unsubscribe();
+    this.searchBlurGeneration++;
     this.subscriptions.unsubscribe();
     this.observer?.disconnect();
   }
@@ -167,6 +173,20 @@ export class App implements OnDestroy {
           };
           this.loading = false;
           this.refresh();
+          void this.router
+            .navigate([], {
+              queryParams: {
+                applicationArea: this.criteria.applicationArea.length
+                  ? this.criteria.applicationArea
+                  : null,
+              },
+              queryParamsHandling: 'merge',
+              replaceUrl: true,
+            })
+            .then(() => {
+              this.warning = true;
+              this.changeDetector.markForCheck();
+            });
           return;
         }
         this.products = [...this.products, ...page.items];
@@ -196,7 +216,15 @@ export class App implements OnDestroy {
   onTyping(value: string) {
     this.searchInput = value;
   }
+  scheduleSearchCommit() {
+    this.searchBlurGeneration++;
+    const generation = this.searchBlurGeneration;
+    void Promise.resolve().then(() => {
+      if (generation === this.searchBlurGeneration) this.commitSearch();
+    });
+  }
   commitSearch() {
+    this.searchBlurGeneration++;
     this.criteria = { ...this.criteria, search: this.searchInput.trim() };
     this.searchInput = this.criteria.search;
     const wasMobile = this.mobileSearch;
@@ -218,6 +246,7 @@ export class App implements OnDestroy {
     this.lastTrigger?.focus();
   }
   clearSearch() {
+    this.searchBlurGeneration++;
     this.searchInput = '';
     this.commitSearch();
   }

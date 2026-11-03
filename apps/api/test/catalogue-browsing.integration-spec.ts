@@ -67,7 +67,11 @@ beforeAll(async () => {
   });
   const module = await Test.createTestingModule({ imports: [AppModule] })
     .overrideProvider(DatabaseService)
-    .useValue(database)
+    .useValue({
+      schema,
+      product: database.product,
+      $queryRaw: database.$queryRaw.bind(database),
+    })
     .compile();
   app = module.createNestApplication();
   app.setGlobalPrefix('api');

@@ -56,16 +56,20 @@ export function parseCatalogueSnapshot(csv: string) {
   const header = records[0].record.map((field) => field.trim());
   if (
     new Set(header).size !== header.length ||
-    headers.some((key) => !header.includes(key))
+    headers.some((key) => !header.includes(key)) ||
+    header.length !== headers.length
   )
-    throw new Error('CSV has duplicate or missing required headers');
+    throw new Error('CSV has duplicate, missing, or unexpected headers');
   const warnings: string[] = [];
   const diagnostics: { type: string; summary: string; detail: string }[] = [];
   function warn(type: string, summary: string, detail = summary) {
     warnings.push(detail);
     diagnostics.push({ type, summary, detail });
   }
-  const selected = new Map<string, { product: Product; line: number }>();
+  const selected = new Map<
+    string,
+    { product: Product; line: number; conflicted: boolean }
+  >();
   let duplicateRows = 0;
   for (const { record, info } of records.slice(1)) {
     const line = info.lines;
@@ -102,7 +106,7 @@ export function parseCatalogueSnapshot(csv: string) {
     if (yearText && yearText.toLowerCase() !== 'n/a') {
       const parsedYear = Number(yearText);
       if (
-        /^[+-]?\d+$/.test(yearText) &&
+        /^\d{4}$/.test(yearText) &&
         Number.isSafeInteger(parsedYear) &&
         parsedYear >= -2147483648 &&
         parsedYear <= 2147483647
@@ -135,11 +139,14 @@ export function parseCatalogueSnapshot(csv: string) {
     };
     const previous = selected.get(sku);
     if (!previous) {
-      selected.set(sku, { product, line });
+      selected.set(sku, { product, line, conflicted: false });
       continue;
     }
     duplicateRows++;
-    if (JSON.stringify(previous.product) === JSON.stringify(product)) {
+    if (
+      !previous.conflicted &&
+      JSON.stringify(previous.product) === JSON.stringify(product)
+    ) {
       warn(
         'Identical duplicate',
         `Duplicate ${sku}: identical rows ${previous.line} and ${line}`,
@@ -148,8 +155,8 @@ export function parseCatalogueSnapshot(csv: string) {
     }
     const winner =
       priority[product.status] >= priority[previous.product.status]
-        ? { product, line }
-        : previous;
+        ? { product, line, conflicted: true }
+        : { ...previous, conflicted: true };
     warn(
       'Conflicting duplicate',
       `CONFLICT ${sku}: row ${previous.line} (${previous.product.status}), row ${line} (${product.status}); selected row ${winner.line} (${winner.product.status})`,

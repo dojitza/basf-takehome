@@ -293,3 +293,28 @@ test('a failed next batch preserves results, does not auto-retry while failed, a
   await scrollToLastRow(page);
   await expect.poll(() => rows(page).count()).toBeGreaterThan(afterRetry);
 });
+
+test('removing a search while editing its draft does not request the draft', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openCatalogue(page);
+  await search(page).fill('Fixture Product 001');
+  await search(page).press('Enter');
+  await expect(
+    page.getByRole('button', { name: /remove search fixture product 001/i }),
+  ).toBeVisible();
+  await search(page).fill('Uncommitted draft');
+  const searches: string[] = [];
+  page.on('request', (req) => {
+    const url = new URL(req.url());
+    if (url.pathname === '/api/products')
+      searches.push(url.searchParams.get('search') ?? '');
+  });
+  await page
+    .getByRole('button', { name: /remove search fixture product 001/i })
+    .click();
+  await expect.poll(() => searches.length).toBeGreaterThan(0);
+  expect(searches).toEqual(['']);
+  await expect(search(page)).toHaveValue('');
+});

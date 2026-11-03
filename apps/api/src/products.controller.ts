@@ -42,7 +42,10 @@ export class ProductsController {
     const sort = query['sort'] ?? 'name';
     if (sort !== 'name' && sort !== 'name-desc')
       throw new BadRequestException('Invalid sort');
-    if (query['search'] !== undefined && typeof query['search'] !== 'string')
+    if (
+      query['search'] !== undefined &&
+      (typeof query['search'] !== 'string' || query['search'].length > 200)
+    )
       throw new BadRequestException('Invalid search');
     const search = (query['search'] as string | undefined)?.trim();
     const visibility: Prisma.ProductWhereInput = selected.length
@@ -81,24 +84,36 @@ export class ProductsController {
       ],
     };
     const [items, total, areaRows] = await Promise.all([
-      this.db.product.findMany({
-        where,
-        orderBy: [
-          { name: { sort: sort === 'name' ? 'asc' : 'desc', nulls: 'last' } },
-          { sku: 'asc' },
-        ],
-        skip: offset,
-        take: limit,
-        select: {
-          sku: true,
-          name: true,
-          status: true,
-          presentInLatestImport: true,
-          applicationArea: true,
-          chemicalName: true,
-          function: true,
-        },
-      }),
+      this.db.$queryRaw<
+        {
+          sku: string;
+          name: string | null;
+          status: ProductStatus;
+          presentInLatestImport: boolean;
+          applicationArea: string | null;
+          chemicalName: string | null;
+          function: string | null;
+        }[]
+      >(Prisma.sql`
+        SELECT sku, name, status, "presentInLatestImport", "applicationArea", "chemicalName", function
+        FROM ${Prisma.raw(`"${(this.db.schema ?? 'public').replace(/"/g, '""')}"."Product"`)}
+        WHERE ${
+          selected.length
+            ? Prisma.sql`(${Prisma.join(
+                selected.map((status) =>
+                  status === 'UNAVAILABLE'
+                    ? Prisma.sql`(NOT "presentInLatestImport" OR ("presentInLatestImport" AND status = 'UNKNOWN'))`
+                    : Prisma.sql`("presentInLatestImport" AND status::text = ${status})`,
+                ),
+                ' OR ',
+              )})`
+            : Prisma.sql`"presentInLatestImport"`
+        }
+        ${literal ? Prisma.sql`AND (name ILIKE ${`%${literal}%`} OR sku ILIKE ${`%${literal}%`})` : Prisma.empty}
+        ${areas.length ? Prisma.sql`AND "applicationArea" IN (${Prisma.join(areas)})` : Prisma.empty}
+        ORDER BY lower(name) ${sort === 'name' ? Prisma.sql`ASC` : Prisma.sql`DESC`} NULLS LAST, sku ASC
+        LIMIT ${limit} OFFSET ${offset}
+      `),
       this.db.product.count({ where }),
       this.db.product.findMany({
         where: { applicationArea: { not: null } },

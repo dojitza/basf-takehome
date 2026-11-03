@@ -17,11 +17,12 @@
         pInputText
         id="desktop-search"
         type="search"
+        maxlength="200"
         placeholder="Search products or SKU"
         [ngModel]="searchInput"
         name="search"
         (ngModelChange)="onTyping($event)"
-        (blur)="commitSearch()"
+        (blur)="scheduleSearchCommit()"
       />
     </form>
     <button
@@ -49,6 +50,7 @@
       type="button"
       class="toolbar-button"
       #filterButton
+      [attr.aria-expanded]="panel === 'filter'"
       (click)="openPanel('filter', filterButton)"
     >
       <svg
@@ -67,6 +69,7 @@
       type="button"
       class="toolbar-button"
       #sortButton
+      [attr.aria-expanded]="panel === 'sort'"
       (click)="openPanel('sort', sortButton)"
     >
       <svg
@@ -93,6 +96,7 @@
           type="button"
           class="chip"
           [attr.aria-label]="'Remove search ' + criteria.search"
+          (mousedown)="$event.preventDefault()"
           (click)="clearSearch()"
         >
           <span>{{ criteria.search }}</span
@@ -243,6 +247,7 @@
           pInputText
           id="mobile-search"
           type="search"
+          maxlength="200"
           name="mobileSearch"
           placeholder="Search products or SKU"
           [ngModel]="searchInput"
@@ -266,7 +271,7 @@
   <button
     class="backdrop"
     type="button"
-    aria-label="Close filters"
+    [attr.aria-label]="panel === 'filter' ? 'Close filters' : 'Close sort'"
     tabindex="-1"
     (click)="closePanel()"
   ></button>

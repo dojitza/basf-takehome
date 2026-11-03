@@ -8,7 +8,7 @@ The shell and readiness endpoint are infrastructure only. The import slice adds 
 
 ## Working process and configuration
 
-Follow root AGENTS.md. Propose acceptance behavior and material decisions, discuss, implement/verify, and return a reviewable result. Keep docs/human/ empty. AI_USAGE.md is the source log for all human steering and disagreements; do not duplicate those accounts here.
+Follow root AGENTS.md. Propose acceptance behavior and material decisions, discuss, implement/verify, and return a reviewable result. The human has opened docs/human/v0.1.0.md for milestone notes and architectural review; preserve their writing. AI_USAGE.md is the source log for all human steering and disagreements; do not duplicate those accounts here.
 
 The human will provide a PrimeNG Community key in ignored apps/web/src/primeng-license.local.ts (`primeNgLicenseKey`). Do not read or print that value. npm installation initializes a blank file only when absent. Missing-key notices remain until configured. Check the package's public types/documentation for configuration; do not inspect its restricted implementation to bypass licensing.
 

@@ -335,3 +335,13 @@ After ImageGen exploration of mobile and desktop no-results states, Codex recomm
 ## 2026-11-03 — Address adversarial test findings
 
 The human asked Codex to commit the adversarial test hardening first and then fix the implementation against those tests. Codex committed the tests and supporting review notes, implemented the fixes, adapted the database fixture, and added a browser regression for the search-chip interaction. No sub-agents were used for this work.
+
+## 2026-11-03 — Human-readable architectural review
+
+The human requested a readable architectural review in the existing `docs/human/v0.1.0.md`, opening the previously reserved human documentation folder. They prioritized the story of boundaries, persistence, concurrency and state ownership over exhaustive implementation detail. Codex preserved the human's existing notes and added a review grounded in current source code and agent documentation, including implementation limits. No sub-agents were used.
+
+## 2026-11-03 — Explore desktop catalogue density
+
+The human observed that the desktop catalogue seems to have too much whitespace and would like to explore a denser layout. Codex recorded this as a pending design exploration in TODO.md; no design or implementation change has been agreed.
+
+The human also suggested exploring a data grid for the catalogue list and developing the design further with customers. Codex added both to the pending exploration; no approach has been selected.

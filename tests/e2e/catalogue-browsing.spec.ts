@@ -36,7 +36,7 @@ test('a catalogue search and selected criteria survive sharing and reload', asyn
   await dialog.getByRole('checkbox', { name: /discontinued/i }).check();
   await dialog.getByRole('checkbox', { name: /^food$/i }).check();
   await dialog.getByRole('button', { name: /apply/i }).click();
-  await page.getByRole('button', { name: /sort/i }).click();
+  await page.getByRole('button', { name: /^sort$/i }).click();
   const sorting = page.getByRole('dialog', { name: /sort/i });
   await sorting.getByRole('radio', { name: /name.*z.*a/i }).check();
   await sorting.getByRole('button', { name: /apply/i }).click();
@@ -65,7 +65,7 @@ test('a catalogue search and selected criteria survive sharing and reload', asyn
     await expect(
       recipient.getByRole('button', { name: /remove.*food/i }),
     ).toBeVisible();
-    await recipient.getByRole('button', { name: /sort/i }).click();
+    await recipient.getByRole('button', { name: /^sort$/i }).click();
     const restoredSort = recipient.getByRole('dialog', { name: /sort/i });
     await expect(
       restoredSort.getByRole('radio', { name: /name.*z.*a/i }),

@@ -231,6 +231,11 @@ export class App implements OnDestroy {
     this.searchInput = '';
     this.commitSearch();
   }
+  clearSort() {
+    this.criteria = { ...this.criteria, sort: 'name' };
+    this.refreshIfChanged();
+    this.navigate();
+  }
   private navigate() {
     void this.router.navigate([], {
       queryParams: {

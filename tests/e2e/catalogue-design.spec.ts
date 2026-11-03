@@ -164,3 +164,80 @@ test('status labels are legible and visually distinguish the requested states', 
   );
   expect(new Set(colors).size).toBe(3);
 });
+
+test('active search is a removable pill that preserves other filters', async ({
+  page,
+}) => {
+  await open(page);
+  await page.getByRole('button', { name: /^search$/i }).click();
+  await page
+    .getByRole('searchbox', { name: /search products or sku/i })
+    .fill('Fixture Product');
+  await page
+    .getByRole('searchbox', { name: /search products or sku/i })
+    .press('Enter');
+  const selections = page.getByRole('region', { name: /active filters/i });
+  const searchPill = selections.getByRole('button', {
+    name: /remove.*search/i,
+  });
+  await expect(searchPill).toContainText('Fixture Product');
+  await page.getByRole('button', { name: /^filters$/i }).click();
+  const dialog = panel(page, /filter/i);
+  await dialog.getByRole('checkbox', { name: /^active$/i }).check();
+  await dialog.getByRole('button', { name: /apply/i }).click();
+  const activePill = selections.getByRole('button', {
+    name: /remove.*active/i,
+  });
+  await expect(activePill).toBeVisible();
+  await searchPill.click();
+  await expect(searchPill).toHaveCount(0);
+  await expect(activePill).toBeVisible();
+  await expect
+    .poll(() => new URL(page.url()).searchParams.get('search'))
+    .toBeNull();
+  await expect
+    .poll(() => new URL(page.url()).searchParams.get('status'))
+    .toBe('ACTIVE');
+});
+
+test('the logo and header share the same background color', async ({
+  page,
+}) => {
+  await open(page);
+  const colors = await page
+    .getByRole('img', { name: /basf/i })
+    .evaluate((node: HTMLImageElement) => {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1;
+      canvas.height = 1;
+      const context = canvas.getContext('2d');
+      if (!context) throw new Error('Canvas unavailable');
+      context.drawImage(node, 0, 0, 1, 1, 0, 0, 1, 1);
+      const pixel = [...context.getImageData(0, 0, 1, 1).data].slice(0, 3);
+      const header = node.closest('header');
+      if (!header) throw new Error('Header unavailable');
+      const css = getComputedStyle(header)
+        .backgroundColor.match(/\d+/g)
+        ?.slice(0, 3)
+        .map(Number);
+      return { pixel, css };
+    });
+  expect(colors.pixel).toEqual(colors.css);
+});
+
+test('a non-default sort pill resets sorting when removed', async ({
+  page,
+}) => {
+  await open(page);
+  await page.getByRole('button', { name: /^sort$/i }).click();
+  const dialog = panel(page, /sort/i);
+  await dialog.getByRole('radio', { name: /name.*z.*a/i }).check();
+  await dialog.getByRole('button', { name: /apply/i }).click();
+  const pill = page.getByRole('button', { name: /remove sort/i });
+  await expect(pill).toBeVisible();
+  await pill.click();
+  await expect(pill).toHaveCount(0);
+  await expect
+    .poll(() => new URL(page.url()).searchParams.get('sort'))
+    .toBeNull();
+});

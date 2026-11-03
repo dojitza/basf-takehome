@@ -3,7 +3,7 @@
   color: #222;
 }
 .header {
-  background: #004794;
+  background: #014795;
   color: white;
 }
 .header-inner {
@@ -102,14 +102,29 @@ h1 {
   overflow-x: auto;
   margin-top: 0.75rem;
 }
-.chip {
+.chip.p-button {
   flex: none;
-  border: 1px solid #aab2ba;
-  background: #f5f6f7;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 0;
+  background: #dcecff;
+  color: #102a4b;
   border-radius: 2rem;
-  padding: 0.55rem 0.8rem;
-  cursor: pointer;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.875rem;
+  font-weight: 400;
 }
+.chip.p-button:hover {
+  background: #c9e1fb;
+  color: #102a4b;
+}
+.chip.p-button:focus-visible {
+  outline: 2px solid #00549f;
+  outline-offset: 2px;
+}
+
 .load-area {
   display: flex;
   justify-content: center;
@@ -158,6 +173,7 @@ h1 {
 }
 .drawer-title h2 {
   font-size: 1.25rem;
+  margin-right: auto;
 }
 .drawer-content {
   flex: 1;
@@ -203,7 +219,15 @@ legend {
 .search-overlay form {
   display: grid;
   gap: 1rem;
-  margin-top: 2rem;
+}
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.search-row input {
+  flex: 1;
+  min-width: 0;
 }
 .sr-only {
   position: absolute;

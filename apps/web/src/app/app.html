@@ -1,6 +1,6 @@
 <header class="header">
   <div class="header-inner">
-    <img src="basf-logo.jpg" alt="BASF – We create chemistry" /><strong
+    <img src="basf-logo.png" alt="BASF – We create chemistry" /><strong
       >Product Finder</strong
     >
   </div>
@@ -80,26 +80,58 @@
       ><span>Sort</span>
     </button>
   </div>
-  @if (criteria.status.length || criteria.applicationArea.length) {
+  @if (
+    criteria.search ||
+    criteria.status.length ||
+    criteria.applicationArea.length ||
+    criteria.sort !== 'name'
+  ) {
     <div class="chips" role="region" aria-label="Active filters">
+      @if (criteria.search) {
+        <button
+          pButton
+          type="button"
+          class="chip"
+          [attr.aria-label]="'Remove search ' + criteria.search"
+          (click)="clearSearch()"
+        >
+          <span>{{ criteria.search }}</span
+          ><span aria-hidden="true">×</span>
+        </button>
+      }
+      @if (criteria.sort !== 'name') {
+        <button
+          pButton
+          type="button"
+          class="chip"
+          aria-label="Remove sort Name Z to A"
+          (click)="clearSort()"
+        >
+          <span>Name Z–A</span><span aria-hidden="true">×</span>
+        </button>
+      }
       @for (status of criteria.status; track status) {
         <button
+          pButton
           type="button"
           class="chip"
           [attr.aria-label]="'Remove ' + label(status)"
           (click)="remove('status', status)"
         >
-          {{ label(status) }} ×
+          <span>{{ label(status) }}</span
+          ><span aria-hidden="true">×</span>
         </button>
       }
       @for (area of criteria.applicationArea; track area) {
         <button
+          pButton
           type="button"
           class="chip"
           [attr.aria-label]="'Remove ' + area"
           (click)="remove('applicationArea', area)"
         >
-          {{ area }} ×
+          <span>{{ area }}</span
+          ><span aria-hidden="true">×</span>
         </button>
       }
     </div>
@@ -196,19 +228,31 @@
     aria-label="Search products"
     (keydown)="onDialogKey($event)"
   >
-    <button pButton severity="secondary" type="button" (click)="closeSearch()">
-      Back
-    </button>
     <form (submit)="$event.preventDefault(); commitSearch()" role="search">
-      <label for="mobile-search">Search products or SKU</label
-      ><input
-        pInputText
-        id="mobile-search"
-        type="search"
-        name="mobileSearch"
-        [ngModel]="searchInput"
-        (ngModelChange)="onTyping($event)"
-      /><button pButton type="submit">Search products</button>
+      <div class="search-row">
+        <label class="sr-only" for="mobile-search"
+          >Search products or SKU</label
+        >
+        <input
+          pInputText
+          id="mobile-search"
+          type="search"
+          name="mobileSearch"
+          placeholder="Search products or SKU"
+          [ngModel]="searchInput"
+          (ngModelChange)="onTyping($event)"
+        />
+        <button
+          pButton
+          severity="secondary"
+          type="button"
+          aria-label="Close search"
+          (click)="closeSearch()"
+        >
+          ×
+        </button>
+      </div>
+      <button pButton type="submit">Search products</button>
     </form>
   </div>
 }

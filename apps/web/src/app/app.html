@@ -1,6 +1,266 @@
+<header class="header">
+  <div class="header-inner"><strong>Product Finder</strong></div>
+</header>
 <main>
-  <h1>Product Finder</h1>
-  <p>The application foundation is ready.</p>
-  <p-button label="Catalogue coming soon" [disabled]="true" />
-  <router-outlet />
+  <div class="toolbar">
+    <form
+      class="desktop-search"
+      (submit)="$event.preventDefault(); commitSearch()"
+      role="search"
+    >
+      <label class="sr-only" for="desktop-search">Search products or SKU</label>
+      <input
+        pInputText
+        id="desktop-search"
+        type="search"
+        placeholder="Search products or SKU"
+        [ngModel]="searchInput"
+        name="search"
+        (ngModelChange)="onTyping($event)"
+        (blur)="commitSearch()"
+      />
+    </form>
+    <button
+      pButton
+      class="mobile-search-button"
+      type="button"
+      #searchButton
+      (click)="openSearch(searchButton)"
+    >
+      Search
+    </button>
+    <button
+      pButton
+      severity="secondary"
+      type="button"
+      #filterButton
+      (click)="openPanel('filter', filterButton)"
+    >
+      Filters
+    </button>
+    <button
+      pButton
+      severity="secondary"
+      type="button"
+      #sortButton
+      (click)="openPanel('sort', sortButton)"
+    >
+      Sort
+    </button>
+  </div>
+  @if (criteria.status.length || criteria.applicationArea.length) {
+    <div class="chips" role="region" aria-label="Active filters">
+      @for (status of criteria.status; track status) {
+        <button
+          type="button"
+          class="chip"
+          [attr.aria-label]="'Remove ' + label(status)"
+          (click)="remove('status', status)"
+        >
+          {{ label(status) }} ×
+        </button>
+      }
+      @for (area of criteria.applicationArea; track area) {
+        <button
+          type="button"
+          class="chip"
+          [attr.aria-label]="'Remove ' + area"
+          (click)="remove('applicationArea', area)"
+        >
+          {{ area }} ×
+        </button>
+      }
+    </div>
+  }
+  @if (warning) {
+    <p class="warning">
+      This link contains invalid or unsupported filters or sort; defaults were
+      used.
+    </p>
+  }
+  <div class="results-heading">
+    <h1>Products</h1>
+    @if (!loading || products.length) {
+      <span>{{ total }} results</span>
+    }
+  </div>
+  <div role="status" aria-live="polite" class="status-message">
+    @if (loading) {
+      Loading products…
+    } @else if (products.length && nextOffset === null) {
+      All products loaded.
+    }
+  </div>
+  @if (error) {
+    <div role="alert" class="error">
+      Unable to load products.
+      <button pButton type="button" (click)="loadMore()">Retry</button>
+    </div>
+  }
+  @if (!loading && !error && !products.length) {
+    <div class="empty">
+      <p>
+        {{
+          criteria.search ||
+          criteria.status.length ||
+          criteria.applicationArea.length
+            ? 'No matching products found.'
+            : 'No products in the catalogue.'
+        }}
+      </p>
+      @if (criteria.search) {
+        <button pButton severity="secondary" (click)="clearSearch()">
+          Clear search
+        </button>
+      }
+    </div>
+  }
+  @if (products.length) {
+    <ul class="products" aria-label="Products">
+      @for (product of products; track product.sku) {
+        <li class="product">
+          <div class="product-main">
+            <strong>{{ product.name || 'Unnamed product' }}</strong
+            ><span class="sku">{{ product.sku }}</span>
+            @if (product.chemicalName) {
+              <span class="detail">{{ product.chemicalName }}</span>
+            }
+          </div>
+          <div class="product-meta">
+            @if (product.applicationArea) {
+              <span>{{ product.applicationArea }}</span>
+            }
+            <p-tag [value]="displayStatus(product)" severity="secondary" />
+          </div>
+        </li>
+      }
+    </ul>
+  }
+  @if (nextOffset !== null && products.length) {
+    <div class="load-area">
+      @if (!error) {
+        <span #sentinel aria-hidden="true"></span>
+      }
+      <button
+        pButton
+        severity="secondary"
+        type="button"
+        [disabled]="loading"
+        (click)="loadMore()"
+      >
+        Load more
+      </button>
+    </div>
+  }
 </main>
+@if (mobileSearch) {
+  <div
+    class="search-overlay"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Search products"
+    (keydown)="onDialogKey($event)"
+  >
+    <button pButton severity="secondary" type="button" (click)="closeSearch()">
+      Back
+    </button>
+    <form (submit)="$event.preventDefault(); commitSearch()" role="search">
+      <label for="mobile-search">Search products or SKU</label
+      ><input
+        pInputText
+        id="mobile-search"
+        type="search"
+        name="mobileSearch"
+        [ngModel]="searchInput"
+        (ngModelChange)="onTyping($event)"
+      /><button pButton type="submit">Search products</button>
+    </form>
+  </div>
+}
+@if (panel) {
+  <button
+    class="backdrop"
+    type="button"
+    aria-label="Close filters"
+    tabindex="-1"
+    (click)="closePanel()"
+  ></button>
+  <section
+    class="drawer"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="panel === 'filter' ? 'Filter products' : 'Sort products'"
+    (keydown)="onDialogKey($event)"
+  >
+    <div class="drawer-title">
+      <h2>{{ panel === 'filter' ? 'Filters' : 'Sort' }}</h2>
+      <button pButton severity="secondary" type="button" (click)="closePanel()">
+        Close
+      </button>
+    </div>
+    @if (panel === 'filter') {
+      <fieldset>
+        <legend>Status</legend>
+        @for (status of statuses; track status) {
+          <label class="choice"
+            ><input
+              type="checkbox"
+              [checked]="draft.status.includes(status)"
+              (change)="toggle('status', status, $any($event.target).checked)"
+            />
+            {{ label(status) }}</label
+          >
+        }
+      </fieldset>
+      <fieldset>
+        <legend>Application area</legend>
+        @for (area of areas; track area) {
+          <label class="choice"
+            ><input
+              type="checkbox"
+              [checked]="draft.applicationArea.includes(area)"
+              (change)="
+                toggle('applicationArea', area, $any($event.target).checked)
+              "
+            />
+            {{ area }}</label
+          >
+        }
+      </fieldset>
+      <button
+        pButton
+        severity="secondary"
+        type="button"
+        (click)="clearFilters()"
+      >
+        Clear filters
+      </button>
+    } @else {
+      <fieldset>
+        <legend>Sort by</legend>
+        <label class="choice"
+          ><input
+            type="radio"
+            name="sort"
+            value="name"
+            [(ngModel)]="draft.sort"
+          />
+          Name A–Z</label
+        ><label class="choice"
+          ><input
+            type="radio"
+            name="sort"
+            value="name-desc"
+            [(ngModel)]="draft.sort"
+          />
+          Name Z–A</label
+        >
+      </fieldset>
+    }
+    <div class="drawer-actions">
+      <button pButton severity="secondary" type="button" (click)="closePanel()">
+        Cancel</button
+      ><button pButton type="button" (click)="applyPanel()">Apply</button>
+    </div>
+  </section>
+}

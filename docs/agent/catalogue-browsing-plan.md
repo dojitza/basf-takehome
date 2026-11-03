@@ -1,6 +1,6 @@
 # Catalogue browsing — working plan
 
-Status: test-first work in progress. The agreed catalogue rules are listed below; frontend architecture and remaining implementation details are proposals. Browsing behavior is not implemented.
+Status: catalogue browsing implemented and locally verified; human review is pending. Some sections below preserve the original proposals and open future decisions.
 
 ## Proposed outcome
 
@@ -8,11 +8,11 @@ A customer can browse imported products and search by name or SKU on desktop and
 
 ## Agreed initial catalogue rules
 
-The human selected case-insensitive substring search over product name and SKU, with the entered query trimmed; the default unfiltered list includes products present in the latest import and displays their customer-facing availability, including discontinued and unavailable products. Products absent from the latest import are excluded unless explicitly requested, as agreed during import planning. The first slice includes status and application-area filters. Multiple values within one filter combine with OR; different filter groups combine with AND. Sort choices are name A–Z and Z–A, default A–Z, with unnamed products last and SKU breaking ties. The human revised the absent-product direction: present unavailable/unknown and absent products together under an unavailable UI category while preserving source status and import presence separately in storage. “Unavailable” includes unknown source status and products absent from the latest import; discontinued remains a separate status. Absence takes precedence in the UI. Exact API wire format remains provisional; these choices do not imply broader full-text search.
+The human selected case-insensitive substring search over product name and SKU, with the entered query trimmed; the default unfiltered list includes products present in the latest import and displays their customer-facing availability, including discontinued and unavailable products. Products absent from the latest import are excluded unless explicitly requested, as agreed during import planning. The first slice includes status and application-area filters. Multiple values within one filter combine with OR; different filter groups combine with AND. Sort choices are name A–Z and Z–A, default A–Z, with unnamed products last and SKU breaking ties. The human revised the absent-product direction: present unavailable/unknown and absent products together under an unavailable UI category while preserving source status and import presence separately in storage. “Unavailable” includes unknown source status and products absent from the latest import; discontinued remains a separate status. Absence takes precedence in the UI. These choices do not imply broader full-text search; the implemented API contract is described below.
 
 ## Proposed end-to-end flow
 
-This describes the read journey under discussion. The import exists today; the browsing screen, API and query do not. Request parameters, presentation and exact error behavior remain open.
+This describes the read journey under discussion. The import, browsing screen, API and query are implemented. Request parameters, presentation and exact error behavior remain open.
 
 ```mermaid
 sequenceDiagram
@@ -53,7 +53,7 @@ The frontend requests bounded batches; the API applies search, visibility rules 
 
 Agreed direction: a product link should open that product directly; a catalogue link should restore the current search, filters and sort. Exact shared scroll position remains undecided. The human also wants sharing an individual review; review flow and URL format remain to be designed. Avoid assumptions about review loading or anchors until that flow is agreed.
 
-The following architecture is proposed for discussion; not implemented or approved:
+The following was the proposed architecture; the current implementation keeps catalogue state in the root component and uses the API contract described below.
 
 - Angular Router owns addressable views: catalogue now, product details later, and eventually a stable way to identify a particular review. The catalogue URL carries committed search, filter and sort state, allowing reload, sharing, back and forward. Exact route names and serialization are provisional.
 - A catalogue page coordinates the view. Product results and controls are focused components; mobile search and filter/sort drawer can be separate presentation components where their behavior warrants it. Reuse PrimeNG components rather than build a generic component framework. Whole-row links become functional when product details exist; do not create dead links.
@@ -64,7 +64,7 @@ The following architecture is proposed for discussion; not implemented or approv
 
 ## Proposed test coverage
 
-The [behavioral test list](catalogue-browsing-tests.md) expands the proposed coverage across frontend state and integration, backend requests, real PostgreSQL and five Playwright journeys. It records unresolved contract decisions and separates conditional/review/detail coverage. A first test-first batch and isolated Playwright harness have been implemented; they currently fail at the missing browsing feature. Conditional and later tests are logged in TODO.md.
+The [behavioral test list](catalogue-browsing-tests.md) expands the proposed coverage across frontend state and integration, backend requests, real PostgreSQL and five Playwright journeys. It records unresolved contract decisions and separates conditional/review/detail coverage. The test-first batch and isolated Playwright harness now exercise the implemented browsing feature. Conditional and later tests are logged in TODO.md.
 
 ## Using the design references
 
@@ -97,9 +97,9 @@ Do not include invented navigation links or an empty mobile hamburger; there are
 
 [Mobile design reference](catalogue-mobile-design-reference.png) illustrates the catalogue, filter/sort drawer and full-screen search. It is a concept, not a precise specification; product data and branding are illustrative.
 
-The human likes a filter/sort drawer with pill controls and a horizontally scrolling row of active selections, plus a full-screen search view. Recent searches shown in the image are deferred. Optimize drawer controls for mobile: comfortably sized touch targets and spacing, readable labels, a scrollable panel that fits the viewport, and accessible focus/keyboard behavior. Drawer edits take effect on Apply; Cancel or closing discards the draft. The concept has not been implemented.
+The human likes a filter/sort drawer with pill controls and a horizontally scrolling row of active selections, plus a full-screen search view. Recent searches shown in the image are deferred. Optimize drawer controls for mobile: comfortably sized touch targets and spacing, readable labels, a scrollable panel that fits the viewport, and accessible focus/keyboard behavior. Drawer edits take effect on Apply; Cancel or closing discards the draft. The mobile drawer and search view are implemented for review.
 
-## Design and behavior still to decide
+## Remaining design and behavior questions
 
 - Page layout, product information and responsive arrangement; how a product with no name is identified.
 - Which availability states appear by default, their labels and explanatory text, and how customers eventually find products absent from the latest import. Status must be understandable without relying on color alone.
@@ -112,3 +112,7 @@ The human likes a filter/sort drawer with pill controls and a horizontally scrol
 ## Proposed representative behavior
 
 A search for SKU P-10151 returns one product marked discontinued. A search without matches displays an understandable empty state; a failed request offers a way to retry. These are examples for discussion, not finalized acceptance criteria.
+
+## Implemented contract and limits
+
+`GET /api/products` accepts search, repeated status and applicationArea, name/name-desc sort, limit and offset. It returns items, total, nextOffset and available application areas. Batches default to 30 and are capped at 100. The component owns URL, draft and request state; it ignores stale responses, uses an IntersectionObserver and offers manual loading and retry. Offset traversal can shift during an import. No performance target has been verified. The brand logo remains absent pending confirmation of suitable digital assets and usage authorization; the header uses text. Product rows remain noninteractive until detail pages exist.

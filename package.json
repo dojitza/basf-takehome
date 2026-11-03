@@ -23,7 +23,8 @@
     "postinstall": "node scripts/ensure-local-config.mjs && npm run db:generate",
     "db:migrate": "npm run db:migrate -w @product-finder/api",
     "db:seed": "npm run db:seed -w @product-finder/api --",
-    "test:e2e": "node scripts/run-browser-tests.mjs"
+    "test:e2e": "node scripts/run-browser-tests.mjs",
+    "dev:tailnet": "node scripts/dev-tailnet.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",

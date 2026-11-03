@@ -317,6 +317,22 @@ describe('catalogue browsing', () => {
     expect(text()).toContain('Alpha');
   });
 
+  it('ignores an unknown application area from a shared link and warns', async () => {
+    await render();
+    request().flush({ ...result(), applicationAreas: ['Coatings', 'Food'] });
+    await update();
+    await TestBed.inject(Router).navigateByUrl('/?applicationArea=Unknown');
+    await update();
+    request().flush({ ...result([]), applicationAreas: ['Coatings', 'Food'] });
+    await update();
+    const fallback = request();
+    expect(fallback.request.params.has('applicationArea')).toBe(false);
+    fallback.flush({ ...result(), applicationAreas: ['Coatings', 'Food'] });
+    await update();
+    expect(text()).toMatch(/invalid|unsupported/i);
+    expect(text()).toContain('Alpha');
+  });
+
   it('does not issue duplicate requests when manual loading is triggered repeatedly', async () => {
     await render();
     request().flush(result([sample[0]], 1));

@@ -8,7 +8,7 @@ Use the smallest boundary that proves a behavior. A few browser journeys intenti
 
 The human selected trimmed, case-insensitive substring search over product name and SKU; present products by default; status and application-area filters; OR within a filter and AND across filters; and name ascending/descending with unnamed products last and SKU tie-breaks. Unavailable combines unknown and absent products, while discontinued remains separate and source status/presence remain independent. Desktop searches after a pause and commits a history entry on Enter or blur; mobile waits for confirmation. Invalid filter/sort URL values are ignored with a short warning and defaults. Drawer edits require Apply; dismissing discards drafts. Recent searches, product details and reviews are deferred. Query validation details, wire format and returning to the previous list position remain open. Exact shared scroll position is not agreed.
 
-The tests use a **provisional test adapter**: `GET /api/products`, `search`, repeated `status`/`applicationArea`, `sort`, `limit` and `offset`, returning `items`, `total` and `nextOffset`. These names and the offset choice are test scaffolding, not an approved API contract. Adjust the adapter and assertions together when the API is designed; preserve the agreed behaviors.
+The implemented API uses `GET /api/products`, `search`, repeated `status`/`applicationArea`, `sort`, `limit` and `offset`, returning `items`, `total`, `nextOffset` and available application areas. Offset pagination has concurrent-import and scale trade-offs documented in the browsing plan.
 
 ## Frontend unit/state — Jest
 

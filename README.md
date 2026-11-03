@@ -4,7 +4,7 @@ Full-stack take-home assignment. Original brief: [ASSIGNMENT.md](ASSIGNMENT.md).
 
 ## Current scope
 
-The bootstrap includes an Angular/SCSS/PrimeNG shell, a NestJS API with PostgreSQL readiness through Prisma, Docker Compose, Jest, linting and formatting. The product migration and manual CSV snapshot import are implemented. Catalogue discovery, product details and reviews are not implemented yet. The complete assignment is not finished.
+The bootstrap includes an Angular/SCSS/PrimeNG shell, a NestJS API with PostgreSQL readiness through Prisma, Docker Compose, Jest, linting and formatting. The product migration and manual CSV snapshot import are implemented. Catalogue browsing supports search, status and application-area filters, sorting, shareable URLs and incremental loading. Product details and reviews are not implemented yet. The complete assignment is not finished.
 
 ## Prerequisites
 
@@ -54,6 +54,16 @@ npm run dev
 
 The command creates missing local configuration, starts PostgreSQL with Compose, waits for its health check, then runs Angular and NestJS in watch mode. Open <http://localhost:4200>; Angular proxies `/api` to the NestJS process on port 3101. Configuration is validated before the API starts. The example `.env` connects to the local Compose database. The local API and container API use different ports and can run simultaneously. Ctrl+C stops both watch processes and leaves PostgreSQL running; stop it with `docker compose stop db`. Its named volume preserves development data. Apply migrations and import the catalogue separately as described below; starting development does not change catalogue data.
 
+## Access local development over Tailscale
+
+On the development machine, stop any existing `npm run dev` process, then run:
+
+```sh
+npm run dev:tailnet
+```
+
+This starts the same PostgreSQL/API stack and binds the Angular development server to the machine’s Tailscale IPv4 address on port 4200. Open `http://<machine-tailnet-name>:4200` from a device on the tailnet. Tailscale must be running on the development machine. This opt-in mode accepts any HTTP Host header on that tailnet interface so Angular can serve the tailnet hostname; use it only on a trusted tailnet. The standard `npm run dev` keeps the web server bound to localhost.
+
 ## Build and verify
 
 ```sh
@@ -78,9 +88,7 @@ The integration test starts a separate PostgreSQL container on port 5433:
 npm run test:integration
 ```
 
-It exercises HTTP readiness, catalogue import and the planned browsing API against an isolated test database, without using the development database. Import and browsing tests create and remove uniquely named schemas; the test container stores data in memory and loses it when stopped. Stop it with `docker compose --profile test stop test-db`.
-
-The browsing tests are written ahead of the feature and currently fail: the application does not yet provide the catalogue screen or product API. Their request/response shape is a provisional test contract while the API is designed.
+It exercises HTTP readiness, catalogue import and the browsing API against an isolated test database, without using the development database. Import and browsing tests create and remove uniquely named schemas; the test container stores data in memory and loses it when stopped. Stop it with `docker compose --profile test stop test-db`.
 
 Browser tests use Playwright and Chromium:
 

@@ -6,4 +6,27 @@ datasource db {
   provider = "postgresql"
 }
 
-// Product and review models will be introduced with their agreed behavior.
+enum ProductStatus {
+  ACTIVE
+  PHASE_OUT
+  DISCONTINUED
+  UNKNOWN
+}
+
+model Product {
+  id                    String        @id @default(uuid())
+  sku                   String        @unique
+  name                  String?
+  chemicalName          String?
+  function              String?
+  applicationArea       String?
+  region                String?
+  certifications        String[]
+  status                ProductStatus
+  launchYear            Int?
+  description           String?
+  presentInLatestImport Boolean       @default(true)
+  createdAt             DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt             DateTime      @updatedAt @db.Timestamptz(3)
+  lastImportedAt        DateTime      @db.Timestamptz(3)
+}

@@ -1,11 +1,11 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import { importCatalogue } from '../src/catalogue-import.js';
-import { runSeed } from '../src/catalogue-seed.js';
+import { runSeed as runSeedWithLogs } from '../src/catalogue-seed.js';
 
 // Proposed boundary for the implementation: an importer accepting CSV, a
 // database URL and an injectable import time. The SQL below assumes a Prisma
@@ -31,6 +31,9 @@ let fixtureDirectory: string;
 async function products() {
   return (await pool.query(`SELECT * FROM "${schema}"."Product" ORDER BY sku`))
     .rows;
+}
+function runSeed(options: Parameters<typeof runSeedWithLogs>[0]) {
+  return runSeedWithLogs({ logDirectory: fixtureDirectory, ...options });
 }
 async function run(input: string, time: Date) {
   return importCatalogue({ databaseUrl, csv: input, now: time });
@@ -240,7 +243,11 @@ describe('seed command', () => {
       ['run', 'db:seed', '-w', '@product-finder/api'],
       {
         cwd: process.cwd(),
-        env: { ...process.env, DATABASE_URL: databaseUrl },
+        env: {
+          ...process.env,
+          DATABASE_URL: databaseUrl,
+          IMPORT_LOG_DIR: fixtureDirectory,
+        },
         encoding: 'utf8',
       },
     );
@@ -265,6 +272,7 @@ describe('seed command', () => {
     const output = `${result.stdout}\n${result.stderr}`;
     expect(result.exitCode).toBe(0);
     expect(output).toMatch(/warn/i);
+    expect(result.stderr).not.toContain('\x1b[');
     expect(output).toMatch(/P-1/i);
     expect(output).toMatch(/active/i);
     expect(output).toMatch(/discontinued/i);
@@ -273,6 +281,55 @@ describe('seed command', () => {
     expect(output).toMatch(/duplicate|conflict/i);
     expect(output).toMatch(/creat/i);
     expect(await products()).toHaveLength(2);
+  });
+
+  it('limits each warning type in yellow console output and retains complete details in the log', async () => {
+    const rows: string[] = [];
+    for (let i = 1; i <= 5; i++) {
+      rows.push(row(`P-${i}`, `Private first ${i}`, 'Active', 'bad-year'));
+      rows.push(row(`P-${i}`, `Private second ${i}`, 'Discontinued'));
+    }
+    const path = fixture('many-warnings.csv', csv(...rows));
+    const result = await runSeed({ databaseUrl, filePath: path, color: true });
+    const log = readFileSync(result.logPath, 'utf8');
+    expect(result.exitCode).toBe(0);
+    expect(result.stderr).toContain('\x1b[33m');
+    expect(result.stderr).toContain('\x1b[0m');
+    expect(result.stderr).toMatch(/Conflicting duplicate \(5\)/);
+    expect(result.stderr).toMatch(/Invalid launch year \(5\)/);
+    expect(result.stderr.match(/\.\.\. and 2 more/g)).toHaveLength(2);
+    expect(result.stderr).not.toContain('P-4');
+    expect(result.stderr).not.toContain('Private first');
+    expect(result.stderr).toContain(result.logPath);
+    expect(log.match(/\[Conflicting duplicate\]/g)).toHaveLength(5);
+    expect(log.match(/\[Invalid launch year\]/g)).toHaveLength(5);
+    expect(log).toContain('Private first 5');
+    expect(log).toContain('Private second 5');
+    expect(log).not.toContain('\x1b[');
+  });
+
+  it('writes fatal diagnostics to the log and leaves redirected output uncolored', async () => {
+    const path = fixture('bad-record.csv', csv(row('', 'Missing SKU')));
+    const result = await runSeed({ databaseUrl, filePath: path });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain(result.logPath);
+    expect(result.stderr).not.toContain('\x1b[');
+    expect(readFileSync(result.logPath, 'utf8')).toMatch(/missing SKU/i);
+  });
+
+  it('does not apply an import if the log cannot be created', async () => {
+    await run(csv(row('P-1', 'Original')), times[0]);
+    const before = await products();
+    const input = fixture('would-change.csv', csv(row('P-1', 'Changed')));
+    const notDirectory = fixture('not-a-directory', 'file');
+    const result = await runSeed({
+      databaseUrl,
+      filePath: input,
+      logDirectory: notDirectory,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toMatch(/could not create log/i);
+    expect(await products()).toEqual(before);
   });
 
   it('reports correct update, unchanged, creation and absence counts on the next snapshot', async () => {

@@ -2,7 +2,7 @@
 
 ## Scope and status
 
-The human approved a buildable, runnable foundation before product features. This phase wires the required technologies and verification tooling. Product discovery, details, reviews, CSV import and domain migrations remain future work. Technical checks do not imply human acceptance or completion of the assignment.
+The human approved a buildable, runnable foundation before product features. This phase wires the required technologies and verification tooling. The catalogue snapshot import and product migration are implemented; product discovery, details and reviews remain future work. Technical checks do not imply human acceptance or completion of the assignment.
 
 ## Architecture
 
@@ -38,8 +38,12 @@ Jest is configured in both applications. Focused checks cover shell/PrimeNG rend
 
 ## Deferred decisions and risks
 
-- Product identity, status normalization, conflicting CSV duplicates, missing values and records absent from subsequent exports need agreement before the schema/import implementation. See [data analysis](docs/agent/evaluation-priorities.md).
-- Repeated imports must preserve reviews. Bootstrap database connectivity does not verify that future guarantee.
+- **Catalogue import:** Treat each CSV as the complete PIM catalogue; assume products absent from a later snapshot are no longer available, and retain their data and future reviews while marking their absence. Confirm export completeness and absence/discontinuation semantics with the PM. Use case-insensitive SKU identity (the sample provides no evidence about whether case is significant); confirm PIM identity rules with the PM. Trim text, preserve other spelling, split and trim pipe-delimited certifications, and treat empty certifications as an empty list. Treat an empty launch year and `n/a` as unknown. Preserve products with a missing name and report them; confirm expectations with the PM/customer and revisit display behavior when designing the UI.
+- Normalize observed status variants; import unrecognized statuses as `UNKNOWN` with a warning and treat them as unavailable in the eventual UI. Treat malformed launch years as unknown with a warning. For duplicate IDs choose the whole row with the most pessimistic status, ordered `UNKNOWN`, `DISCONTINUED`, `PHASE_OUT`, `ACTIVE`; for a tie, choose the later row. Prominently report conflicts and selected values in the seed output. Keep the seed manual for the take-home. Reject unreadable, empty or structurally invalid files and rows missing SKU before applying changes. A nonempty partial export cannot be reliably detected from the sample alone.
+- The manual seed uses a maintained CSV parser, validates before opening its transaction and applies each snapshot with set-based SQL through Prisma. A database lock serializes imports. PostgreSQL timestamps use timezone-aware instants.
+- Track `createdAt`, `updatedAt` (including presence changes), and `lastImportedAt` (most recent successful snapshot containing the product); an unchanged re-import only advances the last-imported time. Customer-facing handling of absent, discontinued, phase-out and nameless products remains a UI decision.
+- **Production follow-up:** Agree a versioned full-export contract and ownership with the PIM team, including delivery schedule, completeness, identity, status meanings and validation. Automatically receive and validate nightly exports, apply accepted snapshots atomically and idempotently, and retain the last successful catalogue on failure. Record import results and data-quality issues for an authorized Product Finder admin interface, with possible email alerts to responsible owners for failures, missed exports and serious conflicts. These are future proposals, not take-home features; see [nightly PIM imports](docs/agent/nightly-pim-imports.md) for details and open questions.
+- Repeated imports must preserve reviews. Verify this with an integration test when the review model is implemented; bootstrap database connectivity does not verify that future guarantee.
 - Search semantics, filter combinations, stable sorting, pagination, shareable URL state and indexes for 50,000 products are undecided.
 - Review fields, ratings and public submission validation are undecided. Authentication and moderation workflows are excluded by the assignment.
 - The initial container setup is for local evaluation. Production would require environment-specific credentials, TLS, deployment/migration policy and operational controls selected for the actual hosting environment.

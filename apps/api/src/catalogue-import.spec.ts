@@ -139,6 +139,7 @@ describe('PIM catalogue snapshot', () => {
     ['sku,name\nP-1,Example', 'missing headers'],
     [`${header},sku\n${row()},P-1`, 'duplicate header'],
     [`${header}\n${row({ sku: ' ' })}`, 'missing SKU'],
+    [`${header}\n${row()}\n,,,,,,,,,`, 'empty record with missing SKU'],
     [`${header}\nP-1,Example`, 'short row'],
     [`${header}\n${row()},extra`, 'long row'],
     [`${header}\nP-1,"unfinished`, 'bad quoting'],

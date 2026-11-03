@@ -4,7 +4,7 @@ Full-stack take-home assignment. Original brief: [ASSIGNMENT.md](ASSIGNMENT.md).
 
 ## Current scope
 
-The bootstrap includes an Angular/SCSS/PrimeNG shell, a NestJS API with PostgreSQL readiness through Prisma, Docker Compose, Jest, linting and formatting. Catalogue discovery, product details, reviews, domain migrations and CSV import are not implemented yet. The complete assignment is not finished.
+The bootstrap includes an Angular/SCSS/PrimeNG shell, a NestJS API with PostgreSQL readiness through Prisma, Docker Compose, Jest, linting and formatting. The product migration and manual CSV snapshot import are implemented. Catalogue discovery, product details and reviews are not implemented yet. The complete assignment is not finished.
 
 ## Prerequisites
 
@@ -52,7 +52,7 @@ On a fresh checkout, run `npm ci` once and add your PrimeNG key as described abo
 npm run dev
 ```
 
-The command creates missing local configuration, starts PostgreSQL with Compose, waits for its health check, then runs Angular and NestJS in watch mode. Open <http://localhost:4200>; Angular proxies `/api` to the NestJS process on port 3101. Configuration is validated before the API starts. The example `.env` connects to the local Compose database. The local API and container API use different ports and can run simultaneously. Ctrl+C stops both watch processes and leaves PostgreSQL running; stop it with `docker compose stop db`. Its named volume preserves development data. No migrations or import run yet because neither is implemented.
+The command creates missing local configuration, starts PostgreSQL with Compose, waits for its health check, then runs Angular and NestJS in watch mode. Open <http://localhost:4200>; Angular proxies `/api` to the NestJS process on port 3101. Configuration is validated before the API starts. The example `.env` connects to the local Compose database. The local API and container API use different ports and can run simultaneously. Ctrl+C stops both watch processes and leaves PostgreSQL running; stop it with `docker compose stop db`. Its named volume preserves development data. Apply migrations and import the catalogue separately as described below; starting development does not change catalogue data.
 
 ## Build and verify
 
@@ -78,17 +78,27 @@ The integration test starts a separate PostgreSQL container on port 5433:
 npm run test:integration
 ```
 
-It exercises the HTTP endpoint through NestJS and Prisma against the isolated test database, without using the development database. Test data is held in container memory and disappears when the test container stops; the command does not reset it between runs. Stop the test container with `docker compose --profile test stop test-db`. There are no domain records or migrations yet. CI runs the root checks, container startup and integration test; hosted CI results are separate from local verification.
+It exercises HTTP readiness and the catalogue import against an isolated test database, without using the development database. Import tests create and remove a uniquely named schema; the test container stores data in memory and loses it when stopped. Stop it with `docker compose --profile test stop test-db`. CI runs the root checks, container startup and integration test; hosted CI results are separate from local verification.
 
 ## Database migrations and CSV import
 
-Prisma client generation is wired into dependency installation and API builds; it can also be run explicitly:
+Start the local PostgreSQL service and install dependencies (`npm ci`) first. From the repository root, apply the checked-in migrations and import the supplied CSV:
 
 ```sh
-npm run db:generate
+docker compose up -d --wait db
+npm run db:migrate
+npm run db:seed
 ```
 
-The current Prisma schema has no domain models. There are no domain migrations or seed/import commands yet. The supplied [data/products.csv](data/products.csv) remains unchanged. A later iteration must implement and verify empty-database migrations, repeatable CSV import, duplicate handling and preservation of user reviews. No database dump is provided.
+The commands read `DATABASE_URL` from `.env`, unless it is already set in the environment. Migration and seed run on the host, including when the application runs in Docker. To import another CSV, pass its path relative to `apps/api`, or use an absolute path:
+
+```sh
+npm run db:seed -- /absolute/path/to/products.csv
+```
+
+Each file is assumed to be the complete catalogue. The command validates it before applying changes in one transaction. Repeated imports preserve product identity; missing products are retained and marked absent. Conflicting duplicate SKUs are reported prominently, with the more pessimistic status winning and the later row breaking ties. Unknown statuses, malformed years and missing names are reported. Warnings show up to three examples per type in the console, in yellow when stderr is a terminal; the command prints the path to a complete per-run log in the ignored `logs/` directory. The log contains full conflicting product records. Set `IMPORT_LOG_DIR` to choose another log directory. Input validation or database failures exit nonzero and keep the previous catalogue. The command refuses to start an import if it cannot create the log. If writing the final log fails after the database commit, the command reports that the import already completed and exits nonzero. A nonempty partial export cannot be reliably detected, so verify the input is complete. See [DECISIONS.md](DECISIONS.md) for assumptions and pending PM confirmation.
+
+Prisma client generation runs during installation and API builds; run `npm run db:generate` explicitly after changing the schema. Reviews are not implemented yet, so their preservation has not been verified. No database dump is provided.
 
 ## Repository layout and decisions
 

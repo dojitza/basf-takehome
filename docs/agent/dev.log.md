@@ -62,3 +62,41 @@ Changed the local API default and Angular proxy to port 3101; Compose retains po
 Added testing-strategy.md with candidate browser journeys, Jest and PostgreSQL test boundaries, an incremental test-first loop and isolation requirements for a future Playwright setup. These are plans for discussion and future feature slices, not implemented tests. No application code or test harness changed.
 
 The strategy was subsequently narrowed to the general development and testing process; feature-specific test cases will be agreed when feature work begins.
+
+## 2026-11-02 — Import behavior discussion
+
+The next slice is limited to migrations and importing the PIM CSV. Recorded working assumptions and PM/customer confirmation points in DECISIONS.md; timestamp semantics and some error handling remain under discussion. No import code, migration or import tests have been implemented. CSV inspection confirmed a pipe delimiter for certifications, a blank and an `n/a` launch year, and two duplicate SKUs including one conflicting status. No application tests were run for this documentation update.
+
+The human agreed to warnings and unknown values for unrecognized statuses and malformed years. The current direction treats each file as a complete catalogue and chooses the more pessimistic status for conflicting duplicate IDs, with a prominent flag; detailed policies remain under discussion in DECISIONS.md. No implementation or tests performed.
+
+The human agreed the proposed status ordering, validation safeguards, timestamp semantics and deferred customer-facing behavior; duplicate selection uses the entire row with the more pessimistic status, or the later row if tied. The take-home uses a manual seed with prominent diagnostics. Researched and documented a future nightly PIM contract and operations in [nightly PIM imports](nightly-pim-imports.md), using AWS and Google Cloud guidance; no production pipeline, admin interface, alerts, application tests or implementation were added.
+
+At the human's request, summarized the production import follow-up directly in DECISIONS.md and retained the detailed research link. Documentation only; no application tests run.
+
+The human confirmed that products absent from a snapshot are assumed unavailable but their data is retained; UI presentation and filtering remain deferred. Validating the full input and applying the snapshot transactionally were accepted. Review preservation will be verified when reviews exist. No implementation or tests performed.
+
+## 2026-11-02 — First import test batch for review
+
+Added initial Jest examples for snapshot normalization, duplicate selection and diagnostics, unknown values, and invalid files. The tests propose a parsing boundary; database snapshot application, timestamps, repeat imports and future review preservation need subsequent integration coverage. The focused Jest invocation fails during module resolution because the importer does not yet exist (zero tests execute); this is not evidence that the examples pass or fail against an implementation. Prettier check passes for the test file. Awaiting human review before implementing.
+
+Fixed the API editor TypeScript project to include spec files and Jest types, while keeping production builds Node-only and excluding specs. `npx tsc --noEmit -p apps/api/tsconfig.json` now reports only the expected missing importer; `npm run build -w @product-finder/api` passes. Test cases still cannot execute before the importer exists.
+
+Reviewed the proposed import coverage against the agreed behavior and existing examples. Presented an expanded behavior list for human review, including snapshot lifecycle and diagnostic gaps; no test code or implementation changed and no tests run. Proposed runtime budget is unmeasured until implemented.
+
+## 2026-11-03 — Import tests implemented ahead of the importer
+
+Expanded the Jest snapshot cases and added an isolated PostgreSQL/seed integration suite for the human-reviewed list. The test-only proposed interfaces are `parseCatalogueSnapshot`, `importCatalogue`, `runSeed`, an npm `db:seed` command and a Prisma `Product` model; they do not yet exist and may need adjustment to the implementation. Integration tests refuse nonlocal/non-test database URLs, create a uniquely named schema, run migrations within it and clean up only that schema. Review-preservation coverage remains deferred until the review model exists.
+
+Verification: focused unit and integration Jest commands both stop at the missing importer module before executing any cases; the integration setup therefore did not touch a database. ESLint and Prettier checks for both files pass. TypeScript reports only the missing importer and seed modules. Runtime of actual test cases and migration/seed behavior remains unverified.
+
+## 2026-11-03 — Catalogue snapshot import
+
+Committed the reviewed test suites and editor configuration as `ff8f05f`. Implemented the Product schema and checked-in migration, strict CSV normalization and duplicate diagnostics, and a manual seed. Parsing finishes before a transaction; a PostgreSQL table lock serializes imports, and set-based operations apply the snapshot while preserving identity, presence history and the agreed timestamps. The seed defaults to the supplied file and reports input, conflict and outcome counts. README documents migration, seed, custom file paths and the complete-snapshot assumption.
+
+The first integration run exposed timezone interpretation of timestamps; changed product timestamps to PostgreSQL timestamptz and reran the suite. Added a test ensuring an all-empty CSV record is rejected rather than skipped. Focused parser suite: 48 tests pass in 0.471 s. Isolated PostgreSQL integration: 13 tests pass across two suites in 3.012 s, including a deferred commit failure and rollback. `npm run check` passes lint, formatting, 60 unit tests across both apps and both builds. Separately ran root migration and default seed twice in a newly created isolated test schema: 202 rows yielded 200 products; first run created 200 and second reported 200 unchanged. The schema was removed; no development data was modified. Review preservation remains unverified until reviews are implemented. The import slice awaits human review.
+
+## 2026-11-03 — Seed diagnostics
+
+Grouped console warnings by type, showing up to three concise examples and an omitted count. Interactive stderr uses yellow unless NO_COLOR is set; redirected output remains plain. Each seed attempt creates an ignored per-run log under `logs/` by default, with full diagnostic details and fatal errors; `IMPORT_LOG_DIR` overrides its directory. A log creation failure stops before import; if the final log write fails after commit, the command explicitly reports that the database change already completed. README documents these semantics.
+
+Verification: `npm run check` passed lint, formatting, 60 unit tests and both builds. `npm run test:integration` passed 16 tests in 2.769 s, including warning limits by category, color, full log contents, fatal error logs and refusal to import when a log cannot be created. Test logs were isolated in a temporary directory and removed. README changed after the full check to clarify the post-commit log failure case.

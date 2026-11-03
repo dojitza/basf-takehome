@@ -9,3 +9,4 @@ coverage/
 **/out-tsc/
 *.tsbuildinfo
 apps/web/src/primeng-license.local.ts
+logs/

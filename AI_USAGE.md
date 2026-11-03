@@ -115,3 +115,59 @@ Codex used shell commands, Python file operations and apply_patch to inspect and
 - Codex recommended adding Playwright alongside the first meaningful feature, rather than a placeholder bootstrap test. The human asked to establish the intended tests and development workflow before the bootstrap commit, including whether to start with tests and whether Playwright is a good frontend vehicle.
 - Result: documented candidate journeys, test boundaries, a test-first feedback loop where useful, and requirements for an isolated future browser-test setup. The strategy is proposed, not implemented coverage or agreed product behavior; Jest remains required by the assignment.
 - Human correction: "Do not write about tests for the feature yet, we are only doing meta work now - how we will be building once we start". Removed the candidate feature cases and feature-specific assertions from the strategy, retaining the general development loop, test boundaries and future harness workflow.
+
+## 2026-11-02 — Narrow and simplify the first import slice
+
+- Agent proposal: start with a catalogue browsing slice spanning import, API, UI and browser tests. Human direction: narrow the first slice to the import/export side and establish the assignment's requirements first. Discussion now concerns migrations and CSV import; no export function or nightly scheduler is required by the brief.
+- Agent proposed complete-snapshot handling, case-sensitive SKU identity, rejecting unknown statuses and malformed years, preserving nameless and absent products, rejecting conflicting duplicates and using a reviewed override for the supplied conflict. Human direction: assume complete snapshots and confirm with the PM; prefer case-insensitive SKU identity and confirm it with the PM; preserve nameless records and confirm expectations with the PM/customer; retain absent products and confirm the behavior with the PM. The human accepted the text, certification, known launch-year and identical-duplicate proposals, and asked to consider unknown statuses, malformed years and conflicting duplicates further.
+- Human steering: do not turn the take-home into a general data-import assignment; prefer a sane, usable import with documented assumptions. Conflicting duplicates need more thought because no authoritative source is available to resolve the supplied conflict. These remaining choices are not yet agreed or implemented.
+
+## 2026-11-02 — Treat files as incremental updates
+
+- Agent proposal: treat each CSV as a complete snapshot, mark absent products accordingly, and resolve status-only duplicate conflicts in favor of the more restrictive status while rejecting other conflicting duplicates.
+- Human correction: assume the file updates existing data rather than replacing the complete dataset; record when data is received, created and updated. For conflicting IDs within one file, reject the later row. This makes file order relevant and keeps records omitted from the file intact.
+- Result: updated the proposed import assumptions in DECISIONS.md. Exact timestamp semantics and remaining validation choices are still being discussed; no import implementation exists.
+
+## 2026-11-02 — Unknown data and discontinued products
+
+- Agent proposal: import unrecognized statuses as `UNKNOWN` with a warning and treat them as unavailable in the eventual UI; treat malformed launch years as unknown with a warning. Human direction: agreed to both behaviors and asked to discuss discontinued products further in light of sales reports about outdated spreadsheets.
+- Status: recorded the agreed import behaviors; customer-facing availability and the conflicting status example remain open. No feature implementation or verification is implied.
+
+## 2026-11-02 — Return to complete catalogue and pessimistic conflict handling
+
+- Previous direction was incremental updates with first-row-wins on duplicate IDs. The agent highlighted stale availability and proposed flagging a first-row status conflict for conservative display.
+- Human direction: given the assignment, return to treating the CSV as the full catalogue; for duplicate IDs choose the more pessimistic status and flag the export problem very prominently, since the PIM is our system. The human asked to highlight what remains unresolved.
+- Result: updated the current import assumptions in DECISIONS.md. Precise status ordering, conflicting non-status fields, flag visibility and other details remain open; nothing has been implemented.
+
+## 2026-11-02 — Choose whole duplicate rows and scope production operations
+
+- Agent proposal: choose status pessimistically but take non-status fields from the first duplicate, and report warnings in the import command. Human correction: use the entire row with the more pessimistic status, breaking status ties in favor of the later row. The human agreed with the other proposed ordering, validation, timestamps and deferred UI considerations.
+- Human direction: retain a manual seed script with prominent errors for the take-home; research and document a stronger nightly PIM contract, future Product Finder admin visibility and possible owner email alerts. Codex consulted AWS and Google Cloud guidance and documented a proposed future workflow. No scheduler, admin interface or alerts are implemented.
+- Follow-up direction: summarize the production follow-up briefly in the import decisions. Added the concise account to DECISIONS.md and retained the detailed research link.
+
+## 2026-11-02 — Clarify absent products and import readiness
+
+- Human direction: assume a product absent from a complete export is unavailable while retaining its data; defer how this appears or is filtered in the UI until UI design. The human suggested an unavailable status and an explicit unavailable filter as possibilities, not settled UI behavior.
+- The human accepted validating the whole input and applying the snapshot in a transaction, and agreed to verify review preservation when reviews are implemented. Recorded the absence assumption and deferred verification in DECISIONS.md; no implementation performed.
+
+## 2026-11-02 — Tests first for import
+
+- Human direction: start the import slice with tests first and write the first batch for human review. Added Jest examples for normalization, duplicate resolution, warning behavior and invalid files; did not implement the importer. The focused run cannot resolve the not-yet-created module, so no test cases executed. Persistence and review-preservation tests remain future work.
+- Human reported the editor could not resolve Jest's `describe`. The API editor project excluded spec files and only included Node types. Included specs and Jest types in the editor project while retaining Node-only types and excluding specs from the production build. TypeScript now reports only the intentionally missing importer, and the API build passes.
+- Human clarification: wanted an enumeration of proposed tests to review, including those already written, rather than the test code. Presented the behavioral cases and distinguished written tests from proposed coverage; no importer implementation was started.
+- Human direction to Sol: review Terra's proposed list for complete, nonduplicative coverage, with a fast suite and no test implementation. Sol reviewed the assignment, agreed decisions and existing examples; expanded the proposed behaviors to cover CSV structure, duplicate groups, clearing values, snapshot lifecycle, timestamps, rollback and seed diagnostics. Runtime remains a target to measure after implementation, not a verified result. No sub-agents or test-code changes were used for this review.
+
+## 2026-11-03 — Implement the reviewed import tests
+
+- Human direction: implement the tests in the reviewed list. Codex expanded the existing Jest parser examples and added proposed PostgreSQL/seed tests, using isolated schemas and controlled timestamps. Review-preservation verification remains deferred to the review model, as agreed. No importer, migration or seed was implemented.
+- Verification: lint and formatting pass; the focused Jest suites cannot resolve the absent importer and execute zero cases. TypeScript reports the missing importer and seed modules. Database behavior, test runtime and future seed/migration interfaces remain unverified.
+
+## 2026-11-03 — Commit tests and implement the import
+
+- Human direction: commit the reviewed tests, then implement the import script. Codex committed the tests and their editor configuration as `ff8f05f`, then implemented the migration, snapshot importer and manual seed; the implementation remains uncommitted for review.
+- Agent self-correction: integration tests exposed timezone interpretation differences with PostgreSQL timestamps lacking timezone information. Changed the new schema to use timezone-aware timestamps and reran the tests successfully. Also added coverage for an all-empty record so it cannot bypass the missing-SKU validation.
+
+## 2026-11-03 — Make seed diagnostics readable
+
+- Human correction: the seed printed complete conflicting product rows to the console. The human asked for concise yellow warnings, at most three examples per error type with an indication of additional cases, and a detailed log file referenced in the output.
+- Result: grouped and limited console warnings, with yellow on supported interactive terminals; added a unique per-run detailed log and documented its location. Full conflict rows remain available in the log. Added integration checks for truncation, log contents, color, fatal errors and an unavailable log directory.

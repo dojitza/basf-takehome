@@ -201,6 +201,30 @@ describe('catalogue browsing', () => {
     expect(text()).toContain('Alpha');
   });
 
+  it.each([
+    '/?status=ACTIVE&sort=name-desc',
+    '/?search=missing&status=ACTIVE&applicationArea=Food&sort=name-desc',
+  ])('clears search and filters while preserving sort from %s', async (url) => {
+    await render();
+    request().flush(result());
+    await update();
+    await TestBed.inject(Router).navigateByUrl(url);
+    await update();
+    request().flush(result([]));
+    await update();
+    button(/clear filters/i).click();
+    await update();
+    const pending = request();
+    expect(pending.request.params.has('search')).toBe(false);
+    expect(pending.request.params.has('status')).toBe(false);
+    expect(pending.request.params.has('applicationArea')).toBe(false);
+    expect(pending.request.params.get('sort')).toBe('name-desc');
+    pending.flush(result());
+    await update();
+    expect(TestBed.inject(Location).path()).toBe('?sort=name-desc');
+    expect(input().value).toBe('');
+  });
+
   it('retains criteria and retries an initial request after an error', async () => {
     await render();
     request().flush(

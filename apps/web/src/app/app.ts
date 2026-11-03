@@ -221,6 +221,17 @@ export class App implements OnDestroy {
     this.searchInput = '';
     this.commitSearch();
   }
+  clearFilters() {
+    this.searchInput = '';
+    this.criteria = {
+      ...this.criteria,
+      search: '',
+      status: [],
+      applicationArea: [],
+    };
+    this.refreshIfChanged();
+    this.navigate();
+  }
   clearSort() {
     this.criteria = { ...this.criteria, sort: 'name' };
     this.refreshIfChanged();

@@ -318,3 +318,5 @@ The human asked to align “Product Finder” to the right of the header; it pre
 The human asked for the title's right spacing to match the visible left spacing of the logo. Codex accounted for the inset baked into the logo image when aligning the title.
 
 The human asked to remove debounced desktop search after the design commit, updating documentation and tests first and confirming the tests fail before implementation. Codex retained the previously agreed Enter and blur commit actions and changed searches to run on commit rather than on a typing pause.
+
+After ImageGen exploration of mobile and desktop no-results states, Codex recommended the second, left-aligned option for the business app. The human agreed and chose “Clear filters” when filters are active and “Clear search” when only a search is active. Codex implemented the selected direction; clearing filters also clears the search and preserves sorting, as proposed.

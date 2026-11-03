@@ -141,7 +141,16 @@ h1 {
   background: #fff3d8;
 }
 .empty {
-  padding: 2rem 0;
+  border-top: 1px solid #ddd;
+  padding: 1.5rem 0;
+}
+.empty h2 {
+  font-size: 1.1rem;
+  margin: 0;
+}
+.empty p {
+  color: #475569;
+  margin: 0.5rem 0 1rem;
 }
 .backdrop {
   position: fixed;

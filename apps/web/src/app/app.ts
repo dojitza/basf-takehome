@@ -277,8 +277,11 @@ export class App implements OnDestroy {
         : this.draft[group].filter((item) => item !== value),
     };
   }
-  clearFilters() {
-    this.draft = { ...this.draft, status: [], applicationArea: [] };
+  resetPanel() {
+    this.draft =
+      this.panel === 'filter'
+        ? { ...this.draft, status: [], applicationArea: [] }
+        : { ...this.draft, sort: 'name' };
   }
   remove(group: 'status' | 'applicationArea', value: string) {
     this.criteria = {
@@ -305,6 +308,12 @@ export class App implements OnDestroy {
     return product.presentInLatestImport === false
       ? 'Unavailable'
       : this.label(product.status);
+  }
+  tagSeverity(product: Product): 'secondary' | 'warn' | 'danger' {
+    if (product.presentInLatestImport === false) return 'secondary';
+    if (product.status === 'PHASE_OUT') return 'warn';
+    if (product.status === 'DISCONTINUED') return 'danger';
+    return 'secondary';
   }
   onDialogKey(event: KeyboardEvent) {
     if (event.key === 'Escape') {

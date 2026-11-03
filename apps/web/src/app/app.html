@@ -1,5 +1,9 @@
 <header class="header">
-  <div class="header-inner"><strong>Product Finder</strong></div>
+  <div class="header-inner">
+    <img src="basf-logo.jpg" alt="BASF – We create chemistry" /><strong
+      >Product Finder</strong
+    >
+  </div>
 </header>
 <main>
   <div class="toolbar">
@@ -22,30 +26,58 @@
     </form>
     <button
       pButton
-      class="mobile-search-button"
+      class="mobile-search-button toolbar-button"
+      severity="secondary"
       type="button"
       #searchButton
       (click)="openSearch(searchButton)"
     >
-      Search
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <circle cx="11" cy="11" r="7" />
+        <path d="m16 16 4 4" /></svg
+      ><span>Search</span>
     </button>
     <button
       pButton
       severity="secondary"
       type="button"
+      class="toolbar-button"
       #filterButton
       (click)="openPanel('filter', filterButton)"
     >
-      Filters
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="M3 5h18l-7 8v5l-4 2v-7z" /></svg
+      ><span>Filters</span>
     </button>
     <button
       pButton
       severity="secondary"
       type="button"
+      class="toolbar-button"
       #sortButton
       (click)="openPanel('sort', sortButton)"
     >
-      Sort
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <path d="M7 3v16m-4-4 4 4 4-4M17 21V5m-4 4 4-4 4 4" /></svg
+      ><span>Sort</span>
     </button>
   </div>
   @if (criteria.status.length || criteria.applicationArea.length) {
@@ -130,7 +162,10 @@
             @if (product.applicationArea) {
               <span>{{ product.applicationArea }}</span>
             }
-            <p-tag [value]="displayStatus(product)" severity="secondary" />
+            <p-tag
+              [value]="displayStatus(product)"
+              [severity]="tagSeverity(product)"
+            />
           </div>
         </li>
       }
@@ -192,75 +227,83 @@
     [attr.aria-label]="panel === 'filter' ? 'Filter products' : 'Sort products'"
     (keydown)="onDialogKey($event)"
   >
-    <div class="drawer-title">
-      <h2>{{ panel === 'filter' ? 'Filters' : 'Sort' }}</h2>
-      <button pButton severity="secondary" type="button" (click)="closePanel()">
-        Close
-      </button>
-    </div>
-    @if (panel === 'filter') {
-      <fieldset>
-        <legend>Status</legend>
-        @for (status of statuses; track status) {
-          <label class="choice"
-            ><input
-              type="checkbox"
-              [checked]="draft.status.includes(status)"
-              (change)="toggle('status', status, $any($event.target).checked)"
-            />
-            {{ label(status) }}</label
-          >
-        }
-      </fieldset>
-      <fieldset>
-        <legend>Application area</legend>
-        @for (area of areas; track area) {
-          <label class="choice"
-            ><input
-              type="checkbox"
-              [checked]="draft.applicationArea.includes(area)"
-              (change)="
-                toggle('applicationArea', area, $any($event.target).checked)
-              "
-            />
-            {{ area }}</label
-          >
-        }
-      </fieldset>
+    <header class="drawer-title">
       <button
         pButton
         severity="secondary"
         type="button"
-        (click)="clearFilters()"
+        aria-label="Close"
+        (click)="closePanel()"
       >
-        Clear filters
+        ×
       </button>
-    } @else {
-      <fieldset>
-        <legend>Sort by</legend>
-        <label class="choice"
-          ><input
-            type="radio"
-            name="sort"
-            value="name"
-            [(ngModel)]="draft.sort"
-          />
-          Name A–Z</label
-        ><label class="choice"
-          ><input
-            type="radio"
-            name="sort"
-            value="name-desc"
-            [(ngModel)]="draft.sort"
-          />
-          Name Z–A</label
-        >
-      </fieldset>
-    }
-    <div class="drawer-actions">
-      <button pButton severity="secondary" type="button" (click)="closePanel()">
-        Cancel</button
-      ><button pButton type="button" (click)="applyPanel()">Apply</button>
+      <h2>{{ panel === 'filter' ? 'Filters' : 'Sort' }}</h2>
+      <button pButton severity="secondary" type="button" (click)="resetPanel()">
+        {{ panel === 'filter' ? 'Clear filters' : 'Reset sort' }}
+      </button>
+    </header>
+    <div class="drawer-content" data-panel-content>
+      @if (panel === 'filter') {
+        <fieldset>
+          <legend>Status</legend>
+          @for (status of statuses; track status) {
+            <label class="choice"
+              ><input
+                type="checkbox"
+                [checked]="draft.status.includes(status)"
+                (change)="toggle('status', status, $any($event.target).checked)"
+              />
+              {{ label(status) }}</label
+            >
+          }
+        </fieldset>
+        <fieldset>
+          <legend>Application area</legend>
+          @for (area of areas; track area) {
+            <label class="choice"
+              ><input
+                type="checkbox"
+                [checked]="draft.applicationArea.includes(area)"
+                (change)="
+                  toggle('applicationArea', area, $any($event.target).checked)
+                "
+              />
+              {{ area }}</label
+            >
+          }
+        </fieldset>
+      } @else {
+        <fieldset>
+          <legend>Sort by</legend>
+          <label class="choice"
+            ><input
+              type="radio"
+              name="sort"
+              value="name"
+              [(ngModel)]="draft.sort"
+            />
+            Name A–Z</label
+          >
+          <label class="choice"
+            ><input
+              type="radio"
+              name="sort"
+              value="name-desc"
+              [(ngModel)]="draft.sort"
+            />
+            Name Z–A</label
+          >
+        </fieldset>
+      }
     </div>
+    <footer class="drawer-actions">
+      <button pButton type="button" (click)="applyPanel()">
+        Apply ({{
+          panel === 'filter'
+            ? draft.status.length + draft.applicationArea.length
+            : 1
+        }})
+      </button>
+    </footer>
   </section>
 }

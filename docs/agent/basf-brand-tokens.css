@@ -1,0 +1,32 @@
+/*
+ * BASF digital product reference tokens.
+ * Corporate color hex values are transcribed from the public BASF Brand Portal.
+ * Neutral, radius, spacing, and type-stack values are product suggestions only.
+ * Check current brand approval, licenses, and contrast before production use.
+ */
+:root {
+  --basf-light-blue: #21A0D2;
+  --basf-dark-blue: #004A96;
+  --basf-light-green: #65AC1E;
+  --basf-dark-green: #00793A;
+  --basf-orange: #F39500;
+  --basf-red: #C50022;
+
+  --brand-primary: var(--basf-light-blue);
+  --brand-primary-strong: var(--basf-dark-blue);
+
+  /* Suggested product neutrals, not official BASF palette values. */
+  --text: #1A1A1A;
+  --text-muted: #4B5358;
+  --surface: #FFFFFF;
+  --surface-muted: #F4F6F7;
+  --border: #D5DADD;
+
+  /* Suggested UI geometry; public guidelines give no software radius/spacing spec. */
+  --radius-control: 4px;
+  --radius-card: 4px;
+  --space-unit: 4px;
+
+  /* Roboto is a BASF-approved digital option; self-host static files per guidance. */
+  --font-sans: Roboto, Arial, sans-serif;
+}

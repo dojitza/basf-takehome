@@ -316,3 +316,5 @@ The human requested moving the mobile search label into the field as a hint and 
 The human asked to align “Product Finder” to the right of the header; it previously sat next to the logo. Codex adjusted the header layout so the logo and title occupy opposite ends of the content area.
 
 The human asked for the title's right spacing to match the visible left spacing of the logo. Codex accounted for the inset baked into the logo image when aligning the title.
+
+The human asked to remove debounced desktop search after the design commit, updating documentation and tests first and confirming the tests fail before implementation. Codex retained the previously agreed Enter and blur commit actions and changed searches to run on commit rather than on a typing pause.

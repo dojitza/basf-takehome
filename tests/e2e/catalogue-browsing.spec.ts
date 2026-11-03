@@ -74,8 +74,9 @@ test('a catalogue search and selected criteria survive sharing and reload', asyn
     await recipient.setViewportSize({ width: 1280, height: 720 });
     await expect(search(recipient)).toHaveValue('Fixture Product 006');
     await search(recipient).fill('Fixture Product 012');
-    await expect(products(recipient)).toContainText('Fixture Product 012');
+    await expect(products(recipient)).toContainText('Fixture Product 006');
     await search(recipient).press('Tab');
+    await expect(products(recipient)).toContainText('Fixture Product 012');
     await expect
       .poll(() => new URL(recipient.url()).searchParams.get('search'))
       .toBe('Fixture Product 012');

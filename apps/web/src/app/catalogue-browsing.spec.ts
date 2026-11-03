@@ -134,7 +134,7 @@ describe('catalogue browsing', () => {
     expect(text()).toMatch(/discontinued/i);
   });
 
-  it('starts a desktop search after typing pauses without requiring submit', async () => {
+  it('keeps desktop results and URL unchanged after a pause until search is submitted', async () => {
     await render();
     request().flush(result());
     await update();
@@ -147,14 +147,35 @@ describe('catalogue browsing', () => {
       http.expectNone((req) => req.url.startsWith('/api/products'));
       await jest.advanceTimersByTimeAsync(1500);
       fixture.detectChanges();
-      const pending = request();
-      expect(pending.request.params.get('search')).toBe('alpha');
-      pending.flush(result([sample[0]]));
+      http.expectNone((req) => req.url.startsWith('/api/products'));
+      expect(text()).toContain('P-002');
+      expect(TestBed.inject(Location).path()).not.toContain('search=');
     } finally {
       jest.useRealTimers();
     }
+    await submitSearch('alpha');
+    const pending = request();
+    expect(pending.request.params.get('search')).toBe('alpha');
+    pending.flush(result([sample[0]]));
     await update();
     expect(text()).toContain('Alpha');
+    expect(text()).not.toContain('P-002');
+  });
+
+  it('applies a desktop search when the field loses focus', async () => {
+    await render();
+    request().flush(result());
+    await update();
+    const field = input();
+    field.value = ' alpha ';
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    field.dispatchEvent(new Event('blur'));
+    await update();
+    const pending = request();
+    expect(pending.request.params.get('search')).toBe('alpha');
+    pending.flush(result([sample[0]]));
+    await update();
+    expect(TestBed.inject(Location).path()).toContain('search=alpha');
   });
 
   it('shows an empty catalogue state when no products exist', async () => {

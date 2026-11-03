@@ -57,7 +57,6 @@ export class App implements OnDestroy {
   private readonly subscriptions = new Subscription();
   private request?: Subscription;
   private observer?: IntersectionObserver;
-  private timer?: ReturnType<typeof setTimeout>;
   private lastTrigger?: HTMLElement;
   private generation = 0;
   @ViewChild('sentinel') set sentinel(
@@ -111,7 +110,6 @@ export class App implements OnDestroy {
     );
   }
   ngOnDestroy() {
-    clearTimeout(this.timer);
     this.request?.unsubscribe();
     this.subscriptions.unsubscribe();
     this.observer?.disconnect();
@@ -197,16 +195,8 @@ export class App implements OnDestroy {
   }
   onTyping(value: string) {
     this.searchInput = value;
-    clearTimeout(this.timer);
-    if (!this.mobileSearch)
-      this.timer = setTimeout(() => {
-        this.criteria = { ...this.criteria, search: this.searchInput.trim() };
-        this.refreshIfChanged();
-        this.changeDetector.markForCheck();
-      }, 400);
   }
   commitSearch() {
-    clearTimeout(this.timer);
     this.criteria = { ...this.criteria, search: this.searchInput.trim() };
     this.searchInput = this.criteria.search;
     const wasMobile = this.mobileSearch;

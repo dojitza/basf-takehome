@@ -130,14 +130,27 @@ try {
           `Fixture Product ${String(index).padStart(3, '0')}`,
           index % 2 ? 'Coatings' : 'Food',
           [],
-          index % 3 === 0
-            ? 'DISCONTINUED'
-            : index % 3 === 1
-              ? 'ACTIVE'
-              : 'PHASE_OUT',
+          index === 4
+            ? 'UNKNOWN'
+            : index % 3 === 0
+              ? 'DISCONTINUED'
+              : index % 3 === 1
+                ? 'ACTIVE'
+                : 'PHASE_OUT',
         ],
       );
     }
+    await fixture.query(
+      'INSERT INTO "Product" (id, sku, name, "applicationArea", certifications, status, "presentInLatestImport", "createdAt", "updatedAt", "lastImportedAt") VALUES ($1, $2, $3, $4, $5, $6::"ProductStatus", false, NOW(), NOW(), NOW())',
+      [
+        randomUUID(),
+        'P-121',
+        'Fixture Product 121 Absent',
+        'Food',
+        [],
+        'DISCONTINUED',
+      ],
+    );
   } finally {
     await fixture.end();
   }

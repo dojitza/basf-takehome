@@ -71,10 +71,10 @@ function input(): HTMLInputElement {
   return field;
 }
 function button(name: RegExp): HTMLButtonElement {
-  const found = [...root().querySelectorAll('button')].find((element) =>
-    name.test(
-      `${element.textContent ?? ''} ${element.getAttribute('aria-label') ?? ''}`,
-    ),
+  const found = [...root().querySelectorAll('button')].find(
+    (element) =>
+      name.test(element.textContent?.trim() ?? '') ||
+      name.test(element.getAttribute('aria-label')?.trim() ?? ''),
   );
   if (!found) throw new Error(`A button matching ${name} was not found`);
   return found;
@@ -123,15 +123,41 @@ describe('catalogue browsing', () => {
         {
           ...sample[0],
           sku: 'P-003',
-          name: 'Unavailable',
-          status: 'UNAVAILABLE',
+          name: 'Mystery Formula',
+          status: 'UNKNOWN',
+          presentInLatestImport: true,
         },
-        { ...sample[1], sku: 'P-004', name: 'Stopped', status: 'DISCONTINUED' },
+        {
+          ...sample[0],
+          sku: 'P-004',
+          name: 'Former Discontinued Item',
+          status: 'DISCONTINUED',
+          presentInLatestImport: false,
+        },
+        {
+          ...sample[1],
+          sku: 'P-005',
+          name: null,
+          status: 'DISCONTINUED',
+          presentInLatestImport: true,
+          chemicalName: 'Polyol',
+        },
       ]),
     );
     await update();
-    expect(text()).toMatch(/unavailable/i);
-    expect(text()).toMatch(/discontinued/i);
+    const items = [...root().querySelectorAll('li.product')];
+    expect(items).toHaveLength(3);
+    expect(items[0].querySelector('p-tag')?.textContent?.trim()).toBe(
+      'Unavailable',
+    );
+    expect(items[1].querySelector('p-tag')?.textContent?.trim()).toBe(
+      'Unavailable',
+    );
+    expect(items[2].textContent).toContain('Unnamed product');
+    expect(items[2].textContent).toContain('Polyol');
+    expect(items[2].querySelector('p-tag')?.textContent?.trim()).toBe(
+      'Discontinued',
+    );
   });
 
   it('keeps desktop results and URL unchanged after a pause until search is submitted', async () => {
@@ -227,15 +253,39 @@ describe('catalogue browsing', () => {
 
   it('retains criteria and retries an initial request after an error', async () => {
     await render();
-    request().flush(
+    request().flush(result());
+    await update();
+    await TestBed.inject(Router).navigateByUrl(
+      '/?search=Alpha&status=ACTIVE&applicationArea=Coatings&sort=name-desc',
+    );
+    await update();
+    const failed = request();
+    expect(failed.request.params.get('search')).toBe('Alpha');
+    expect(failed.request.params.getAll('status')).toEqual(['ACTIVE']);
+    expect(failed.request.params.getAll('applicationArea')).toEqual([
+      'Coatings',
+    ]);
+    expect(failed.request.params.get('sort')).toBe('name-desc');
+    failed.flush(
       { message: 'Unavailable' },
       { status: 503, statusText: 'Unavailable' },
     );
     await update();
     expect(root().querySelector('[role="alert"]')).not.toBeNull();
+    expect(input().value).toBe('Alpha');
+    expect(button(/remove active/i)).toBeDefined();
+    expect(button(/remove coatings/i)).toBeDefined();
+    expect(button(/remove sort/i)).toBeDefined();
     button(/retry/i).click();
     await update();
-    request().flush(result());
+    const retried = request();
+    expect(retried.request.params.get('search')).toBe('Alpha');
+    expect(retried.request.params.getAll('status')).toEqual(['ACTIVE']);
+    expect(retried.request.params.getAll('applicationArea')).toEqual([
+      'Coatings',
+    ]);
+    expect(retried.request.params.get('sort')).toBe('name-desc');
+    retried.flush(result([sample[0]]));
     await update();
     expect(text()).toContain('Alpha');
   });
@@ -362,7 +412,7 @@ describe('catalogue browsing', () => {
     expect(text()).toContain('Alpha');
   });
 
-  it('ignores an unknown application area from a shared link and warns', async () => {
+  it('ignores an unknown application area from a shared link, warns, and cleans the URL', async () => {
     await render();
     request().flush({ ...result(), applicationAreas: ['Coatings', 'Food'] });
     await update();
@@ -376,6 +426,215 @@ describe('catalogue browsing', () => {
     await update();
     expect(text()).toMatch(/invalid|unsupported/i);
     expect(text()).toContain('Alpha');
+    expect(TestBed.inject(Location).path()).not.toContain(
+      'applicationArea=Unknown',
+    );
+  });
+
+  it('deduplicates repeated filter parameters in the URL without duplicate chips or inflated counts', async () => {
+    await render();
+    request().flush({ ...result(), applicationAreas: ['Coatings', 'Food'] });
+    await update();
+    await TestBed.inject(Router).navigateByUrl(
+      '/?status=ACTIVE&status=ACTIVE&applicationArea=Coatings&applicationArea=Coatings',
+    );
+    await update();
+    const pending = request();
+    expect(pending.request.params.getAll('status')).toEqual(['ACTIVE']);
+    expect(pending.request.params.getAll('applicationArea')).toEqual([
+      'Coatings',
+    ]);
+    pending.flush({ ...result(), applicationAreas: ['Coatings', 'Food'] });
+    await update();
+    const removeActive = [...root().querySelectorAll('button')].filter((el) =>
+      /remove active/i.test(el.getAttribute('aria-label') ?? ''),
+    );
+    expect(removeActive).toHaveLength(1);
+    button(/^filters$/i).click();
+    await update();
+    expect(button(/apply/i).textContent).toContain('Apply (2)');
+  });
+
+  it('does not commit an unsubmitted desktop search draft when clicking the remove-search chip', async () => {
+    await render();
+    request().flush(result());
+    await update();
+    await TestBed.inject(Router).navigateByUrl('/?search=Alpha');
+    await update();
+    request().flush(result([sample[0]]));
+    await update();
+    const field = input();
+    field.value = 'Beta draft';
+    field.dispatchEvent(new Event('input', { bubbles: true }));
+    const removeChip = button(/remove search alpha/i);
+    // Clicking another button blurs the focused search input before click fires.
+    field.dispatchEvent(new Event('blur'));
+    removeChip.click();
+    await update();
+    const requests = http.match((req) => req.url.startsWith('/api/products'));
+    expect(requests).toHaveLength(1);
+    expect(requests[0].request.params.has('search')).toBe(false);
+    requests[0].flush(result());
+    await update();
+  });
+
+  it('manages filter and sort drawer drafts and resets without issuing requests until applied', async () => {
+    await render();
+    request().flush({ ...result(), applicationAreas: ['Coatings', 'Food'] });
+    await update();
+    const filterTrigger = button(/^filters$/i);
+    filterTrigger.click();
+    await update();
+    const dialog = root().querySelector<HTMLElement>('[role="dialog"]');
+    expect(dialog?.getAttribute('aria-label')).toMatch(/filter/i);
+    const activeCheckbox = [
+      ...(dialog?.querySelectorAll<HTMLInputElement>(
+        'input[type="checkbox"]',
+      ) ?? []),
+    ].find((box) => /active/i.test(box.parentElement?.textContent ?? ''));
+    expect(activeCheckbox).toBeDefined();
+    activeCheckbox!.checked = true;
+    activeCheckbox!.dispatchEvent(new Event('change', { bubbles: true }));
+    await update();
+    expect(button(/apply/i).textContent).toContain('Apply (1)');
+    http.expectNone((req) => req.url.startsWith('/api/products'));
+    button(/clear filters/i).click();
+    await update();
+    expect(activeCheckbox!.checked).toBe(false);
+    expect(button(/apply/i).textContent).toContain('Apply (0)');
+    activeCheckbox!.checked = true;
+    activeCheckbox!.dispatchEvent(new Event('change', { bubbles: true }));
+    await update();
+    button(/^close$/i).click();
+    await update();
+    http.expectNone((req) => req.url.startsWith('/api/products'));
+
+    filterTrigger.click();
+    await update();
+    const reopenedCheckbox = [
+      ...(root()
+        .querySelector<HTMLElement>('[role="dialog"]')
+        ?.querySelectorAll<HTMLInputElement>('input[type="checkbox"]') ?? []),
+    ].find((box) => /active/i.test(box.parentElement?.textContent ?? ''))!;
+    expect(reopenedCheckbox.checked).toBe(false);
+    reopenedCheckbox.checked = true;
+    reopenedCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+    await update();
+    button(/apply/i).click();
+    await update();
+    const applied = request();
+    expect(applied.request.params.getAll('status')).toEqual(['ACTIVE']);
+    applied.flush({
+      ...result([sample[0]]),
+      applicationAreas: ['Coatings', 'Food'],
+    });
+    await update();
+    expect(TestBed.inject(Location).path()).toContain('status=ACTIVE');
+  });
+
+  it('exposes aria-expanded on drawer triggers and an accurate backdrop label when sorting', async () => {
+    await render();
+    request().flush({ ...result(), applicationAreas: ['Coatings', 'Food'] });
+    await update();
+    const filterTrigger = button(/^filters$/i);
+    const sortTrigger = button(/^sort$/i);
+    expect(filterTrigger.getAttribute('aria-expanded')).toBe('false');
+    expect(sortTrigger.getAttribute('aria-expanded')).toBe('false');
+    sortTrigger.click();
+    await update();
+    expect(sortTrigger.getAttribute('aria-expanded')).toBe('true');
+    const backdrop = root().querySelector<HTMLButtonElement>('.backdrop');
+    expect(backdrop?.getAttribute('aria-label')).toMatch(/close (sort|panel)/i);
+  });
+
+  it('manages the mobile full-screen search lifecycle and preserves active filters', async () => {
+    await render();
+    request().flush(result());
+    await update();
+    await TestBed.inject(Router).navigateByUrl('/?search=Alpha&status=ACTIVE');
+    await update();
+    request().flush(result([sample[0]]));
+    await update();
+    button(/^search$/i).click();
+    await update();
+    const mobileInput =
+      root().querySelector<HTMLInputElement>('#mobile-search');
+    expect(mobileInput).not.toBeNull();
+    expect(mobileInput?.value).toBe('Alpha');
+    mobileInput!.value = 'Discarded draft';
+    mobileInput!.dispatchEvent(new Event('input', { bubbles: true }));
+    button(/close search/i).click();
+    await update();
+    http.expectNone((req) => req.url.startsWith('/api/products'));
+    expect(TestBed.inject(Location).path()).toContain('search=Alpha');
+
+    button(/^search$/i).click();
+    await update();
+    const reopened = root().querySelector<HTMLInputElement>('#mobile-search')!;
+    expect(reopened.value).toBe('Alpha');
+    reopened.value = 'Beta';
+    reopened.dispatchEvent(new Event('input', { bubbles: true }));
+    reopened
+      .closest('form')!
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await update();
+    const committed = request();
+    expect(committed.request.params.get('search')).toBe('Beta');
+    expect(committed.request.params.getAll('status')).toEqual(['ACTIVE']);
+    committed.flush(result([sample[0]]));
+    await update();
+  });
+
+  it('loads automatically via IntersectionObserver, suppresses observer loads on error, and re-observes after retry', async () => {
+    let callback: IntersectionObserverCallback | undefined;
+    const observe = jest.fn();
+    const disconnect = jest.fn();
+    const originalObserver = window.IntersectionObserver;
+    window.IntersectionObserver = jest.fn(
+      (cb: IntersectionObserverCallback) => {
+        callback = cb;
+        return {
+          observe,
+          disconnect,
+          unobserve: jest.fn(),
+          takeRecords: () => [],
+          root: null,
+          rootMargin: '100px',
+          thresholds: [0],
+        };
+      },
+    ) as unknown as typeof IntersectionObserver;
+    try {
+      await render();
+      request().flush(result([sample[0]], 1, 2));
+      await update();
+      expect(observe).toHaveBeenCalledTimes(1);
+      callback?.(
+        [{ isIntersecting: true } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      );
+      await update();
+      const second = request();
+      expect(second.request.params.get('offset')).toBe('1');
+      second.flush(
+        { message: 'Failed' },
+        { status: 503, statusText: 'Unavailable' },
+      );
+      await update();
+      callback?.(
+        [{ isIntersecting: true } as IntersectionObserverEntry],
+        {} as IntersectionObserver,
+      );
+      await update();
+      http.expectNone((req) => req.url.startsWith('/api/products'));
+      button(/retry/i).click();
+      await update();
+      request().flush(result([sample[1]], null, 2));
+      await update();
+      expect(text()).toContain('P-002');
+    } finally {
+      window.IntersectionObserver = originalObserver;
+    }
   });
 
   it('does not issue duplicate requests when manual loading is triggered repeatedly', async () => {
@@ -450,12 +709,9 @@ describe('catalogue browsing', () => {
     },
   );
 
-  it('does not show invented application navigation', async () => {
+  it('does not show invented application navigation or dead product links', async () => {
     await render();
-    for (const pending of http.match((req) =>
-      req.url.startsWith('/api/products'),
-    ))
-      pending.flush(result());
+    request().flush(result());
     await update();
     const links = [...root().querySelectorAll('nav a')];
     expect(
@@ -465,6 +721,7 @@ describe('catalogue browsing', () => {
         ),
       ),
     ).toBe(false);
+    expect(root().querySelectorAll('.products a')).toHaveLength(0);
   });
 
   it('renders source text as text rather than executable markup', async () => {

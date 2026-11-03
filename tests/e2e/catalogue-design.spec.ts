@@ -139,7 +139,7 @@ test('sort reset and close preserve the committed selection until applied', asyn
   await expect(dialog.getByRole('button', { name: /cancel/i })).toHaveCount(0);
 });
 
-test('status labels are legible and visually distinguish the requested states', async ({
+test('status labels are legible and visually distinguish the requested states including unavailable and absent precedence', async ({
   page,
 }) => {
   await open(page);
@@ -154,6 +154,10 @@ test('status labels are legible and visually distinguish the requested states', 
   const discontinued = row('Fixture Product 003').getByText('Discontinued', {
     exact: true,
   });
+  const unavailable = row('Fixture Product 004').getByText('Unavailable', {
+    exact: true,
+  });
+  await expect(unavailable).toBeVisible();
   const colors = await Promise.all(
     [active, phase, discontinued].map((tag) =>
       tag.evaluate((element) => {
@@ -163,6 +167,18 @@ test('status labels are legible and visually distinguish the requested states', 
     ),
   );
   expect(new Set(colors).size).toBe(3);
+
+  await page.getByRole('button', { name: /^filters$/i }).click();
+  const dialog = panel(page, /filter/i);
+  await dialog.getByRole('checkbox', { name: /^unavailable$/i }).check();
+  await dialog.getByRole('button', { name: /apply/i }).click();
+  const absentRow = row('Fixture Product 121 Absent');
+  await expect(
+    absentRow.getByText('Unavailable', { exact: true }),
+  ).toBeVisible();
+  await expect(
+    absentRow.getByText('Discontinued', { exact: true }),
+  ).toHaveCount(0);
 });
 
 test('active search is a removable pill that preserves other filters', async ({

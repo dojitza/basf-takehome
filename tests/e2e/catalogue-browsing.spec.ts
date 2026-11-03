@@ -19,6 +19,12 @@ async function scrollToLastRow(page: Page) {
   await rows(page).last().scrollIntoViewIfNeeded();
 }
 
+test.beforeEach(({ page }) => {
+  page.on('pageerror', (error) => {
+    throw error;
+  });
+});
+
 test('a catalogue search and selected criteria survive sharing and reload', async ({
   page,
   browser,
@@ -27,23 +33,30 @@ test('a catalogue search and selected criteria survive sharing and reload', asyn
   await page.setViewportSize({ width: 390, height: 844 });
   await openCatalogue(page);
   await page.getByRole('button', { name: /^search$/i }).click();
-  await search(page).fill('Fixture Product 006');
+  await search(page).fill('Fixture Product 0');
   await search(page).press('Enter');
-  await expect(products(page)).toContainText('Fixture Product 006');
-  await expect(products(page)).not.toContainText('Fixture Product 001');
+  await expect(products(page)).toContainText('Fixture Product 001');
+  await expect(products(page)).toContainText('Fixture Product 002');
+  await expect(products(page)).toContainText('Fixture Product 003');
   await page.getByRole('button', { name: /filter/i }).click();
   const dialog = page.getByRole('dialog', { name: /filter/i });
   await dialog.getByRole('checkbox', { name: /discontinued/i }).check();
   await dialog.getByRole('checkbox', { name: /^food$/i }).check();
   await dialog.getByRole('button', { name: /apply/i }).click();
+  await expect(products(page)).toContainText('Fixture Product 006');
+  await expect(products(page)).toContainText('Fixture Product 012');
+  await expect(products(page)).not.toContainText('Fixture Product 001');
+  await expect(products(page)).not.toContainText('Fixture Product 002');
+  await expect(products(page)).not.toContainText('Fixture Product 003');
+  await expect(rows(page).first()).toContainText('Fixture Product 006');
   await page.getByRole('button', { name: /^sort$/i }).click();
   const sorting = page.getByRole('dialog', { name: /sort/i });
   await sorting.getByRole('radio', { name: /name.*z.*a/i }).check();
   await sorting.getByRole('button', { name: /apply/i }).click();
-  await expect(products(page)).toContainText('Fixture Product 006');
+  await expect(rows(page).first()).toContainText('Fixture Product 096');
   await expect
-    .poll(() => new URL(page.url()).searchParams.get('search'))
-    .toBe('Fixture Product 006');
+    .poll(() => new URL(page.url()).searchParams.get('sort'))
+    .toBe('name-desc');
   const shared = page.url();
   const other = await browser.newContext({
     baseURL,
@@ -51,8 +64,11 @@ test('a catalogue search and selected criteria survive sharing and reload', asyn
   });
   try {
     const recipient = await other.newPage();
+    recipient.on('pageerror', (error) => {
+      throw error;
+    });
     await recipient.goto(shared);
-    await expect(products(recipient)).toContainText('Fixture Product 006');
+    await expect(rows(recipient).first()).toContainText('Fixture Product 096');
     await expect(
       recipient.getByRole('button', { name: /remove.*discontinued/i }),
     ).toBeVisible();
@@ -61,7 +77,7 @@ test('a catalogue search and selected criteria survive sharing and reload', asyn
     ).toBeVisible();
     await expect(recipient.getByText(/discontinued/i).first()).toBeVisible();
     await recipient.reload();
-    await expect(products(recipient)).toContainText('Fixture Product 006');
+    await expect(rows(recipient).first()).toContainText('Fixture Product 096');
     await expect(
       recipient.getByRole('button', { name: /remove.*food/i }),
     ).toBeVisible();
@@ -72,17 +88,18 @@ test('a catalogue search and selected criteria survive sharing and reload', asyn
     ).toBeChecked();
     await recipient.keyboard.press('Escape');
     await recipient.setViewportSize({ width: 1280, height: 720 });
-    await expect(search(recipient)).toHaveValue('Fixture Product 006');
+    await expect(search(recipient)).toHaveValue('Fixture Product 0');
     await search(recipient).fill('Fixture Product 012');
-    await expect(products(recipient)).toContainText('Fixture Product 006');
+    await expect(rows(recipient).first()).toContainText('Fixture Product 096');
     await search(recipient).press('Tab');
     await expect(products(recipient)).toContainText('Fixture Product 012');
+    await expect(products(recipient)).not.toContainText('Fixture Product 096');
     await expect
       .poll(() => new URL(recipient.url()).searchParams.get('search'))
       .toBe('Fixture Product 012');
     await recipient.goBack();
-    await expect(search(recipient)).toHaveValue('Fixture Product 006');
-    await expect(products(recipient)).toContainText('Fixture Product 006');
+    await expect(search(recipient)).toHaveValue('Fixture Product 0');
+    await expect(rows(recipient).first()).toContainText('Fixture Product 096');
   } finally {
     await other.close();
   }
@@ -99,22 +116,35 @@ test('automatically appends batches, supports the manual path, and stops at the 
   await scrollToLastRow(page);
   await expect.poll(() => rows(page).count()).toBeGreaterThan(count);
 
-  // Start a fresh traversal so the manual path is exercised even if the
-  // automatically loaded batch happened to contain the remaining products.
+  // Disable IntersectionObserver in a fresh context to prove the manual button
+  // works independently of automatic scroll intersection.
+  await page.addInitScript(() => {
+    window.IntersectionObserver =
+      undefined as unknown as typeof IntersectionObserver;
+  });
   await openCatalogue(page);
   count = await rows(page).count();
   await next(page).focus();
   await page.keyboard.press('Enter');
   await expect.poll(() => rows(page).count()).toBeGreaterThan(count);
+
+  let traversalRequests = 0;
+  page.on('request', (req) => {
+    if (new URL(req.url()).pathname === '/api/products') traversalRequests++;
+  });
   while ((await rows(page).count()) < fixtureCount) {
     count = await rows(page).count();
-    await scrollToLastRow(page);
+    await next(page).click();
     await expect.poll(() => rows(page).count()).toBeGreaterThan(count);
   }
   await expect(rows(page)).toHaveCount(fixtureCount);
+  await expect(next(page)).toHaveCount(0);
   await expect(
     page.getByText(/all products loaded|end of results|no more products/i),
   ).toBeVisible();
+  const requestsAtEnd = traversalRequests;
+  await scrollToLastRow(page);
+  expect(traversalRequests).toBe(requestsAtEnd);
 });
 
 test('mobile search and filters remain usable without page overflow', async ({
@@ -224,6 +254,14 @@ test('keyboard focus enters and leaves the filter drawer and remains stable when
       ),
     ).toBe(true);
   }
+  for (let i = 0; i < 10; i++) {
+    await page.keyboard.press('Shift+Tab');
+    expect(
+      await page.evaluate(() =>
+        Boolean(document.activeElement?.closest('[role="dialog"]')),
+      ),
+    ).toBe(true);
+  }
   await page.keyboard.press('Escape');
   await expect(dialog).not.toBeVisible();
   await expect(filter).toBeFocused();
@@ -233,7 +271,7 @@ test('keyboard focus enters and leaves the filter drawer and remains stable when
   await expect(filter).toBeFocused();
 });
 
-test('a failed next batch preserves results and can be retried', async ({
+test('a failed next batch preserves results, does not auto-retry while failed, and resumes normal loading after retry', async ({
   page,
 }) => {
   let requests = 0;
@@ -247,6 +285,11 @@ test('a failed next batch preserves results and can be retried', async ({
   await scrollToLastRow(page);
   await expect(page.getByRole('alert')).toBeVisible();
   await expect(rows(page)).toHaveCount(before);
+  await scrollToLastRow(page);
+  expect(requests).toBe(2);
   await page.getByRole('button', { name: /retry/i }).click();
   await expect.poll(() => rows(page).count()).toBeGreaterThan(before);
+  const afterRetry = await rows(page).count();
+  await scrollToLastRow(page);
+  await expect.poll(() => rows(page).count()).toBeGreaterThan(afterRetry);
 });

@@ -20,8 +20,21 @@ let pool: Pool;
 let databaseUrl: string;
 let createdSchema = false;
 
-type Item = { sku: string; name: string | null; status: string };
-type Page = { items: Item[]; total: number; nextOffset: number | null };
+type Item = {
+  sku: string;
+  name: string | null;
+  status: string;
+  presentInLatestImport: boolean;
+  applicationArea: string | null;
+  chemicalName: string | null;
+  function: string | null;
+};
+type Page = {
+  items: Item[];
+  total: number;
+  nextOffset: number | null;
+  applicationAreas: string[];
+};
 const list = (
   query: Record<string, string | number | string[] | undefined> = {},
 ) => request(app.getHttpServer()).get(endpoint).query(query);
@@ -83,6 +96,12 @@ beforeEach(async () => {
         name: 'Alpha',
         status: 'ACTIVE',
         applicationArea: 'Coatings',
+        chemicalName: 'Acrylic dispersion',
+        function: 'Binder',
+        region: 'Europe',
+        certifications: ['ISO 9001'],
+        launchYear: 2021,
+        description: 'Internal detail text',
         lastImportedAt,
       },
       {
@@ -148,21 +167,33 @@ beforeEach(async () => {
 });
 
 describe('catalogue read API against PostgreSQL', () => {
-  it('returns a bounded summary, total and continuation with defaults', async () => {
+  it('returns a bounded summary, total, continuation and distinct application areas without internal fields', async () => {
     const response = await list().expect(200);
-    expect(response.body).toEqual(
-      expect.objectContaining({
-        items: expect.any(Array),
-        total: expect.any(Number),
-      }),
-    );
-    expect(response.body).toHaveProperty('nextOffset');
-    expect(response.body.items[0]).toEqual(
-      expect.objectContaining({
-        sku: expect.any(String),
-        status: expect.any(String),
-      }),
-    );
+    expect(response.body).toEqual({
+      items: expect.any(Array),
+      total: 7,
+      nextOffset: null,
+      applicationAreas: ['Agriculture', 'Coatings', 'Food'],
+    });
+    const p001 = response.body.items.find((item: Item) => item.sku === 'P-001');
+    expect(p001).toEqual({
+      sku: 'P-001',
+      name: 'Alpha',
+      status: 'ACTIVE',
+      presentInLatestImport: true,
+      applicationArea: 'Coatings',
+      chemicalName: 'Acrylic dispersion',
+      function: 'Binder',
+    });
+    expect(Object.keys(p001).sort()).toEqual([
+      'applicationArea',
+      'chemicalName',
+      'function',
+      'name',
+      'presentInLatestImport',
+      'sku',
+      'status',
+    ]);
   });
 
   it('shows present products with their source status and excludes products missing from the latest snapshot', async () => {
@@ -191,9 +222,13 @@ describe('catalogue read API against PostgreSQL', () => {
     },
   );
 
-  it('treats wildcard and query-like input as literal text', async () => {
+  it('treats wildcard, escape and query-like input as literal text', async () => {
     const percent = await list({ search: '100%', limit: 20 }).expect(200);
     expect(skus(percent.body)).toEqual(['X-100']);
+    const underscore = await list({ search: 'P_001', limit: 20 }).expect(200);
+    expect(underscore.body.items).toEqual([]);
+    const backslash = await list({ search: '\\', limit: 20 }).expect(200);
+    expect(backslash.body.items).toEqual([]);
     const injection = await list({ search: "' OR 1=1 --", limit: 20 }).expect(
       200,
     );
@@ -224,6 +259,25 @@ describe('catalogue read API against PostgreSQL', () => {
       limit: 20,
     }).expect(200);
     expect(skus(discontinued.body)).toEqual(['P-003']);
+    expect(unavailable.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          sku: 'P-004',
+          status: 'UNKNOWN',
+          presentInLatestImport: true,
+        }),
+        expect.objectContaining({
+          sku: 'P-006',
+          status: 'ACTIVE',
+          presentInLatestImport: false,
+        }),
+        expect.objectContaining({
+          sku: 'P-007',
+          status: 'DISCONTINUED',
+          presentInLatestImport: false,
+        }),
+      ]),
+    );
     expect(
       await database.product.findUnique({
         where: { sku: 'P-007' },
@@ -283,17 +337,52 @@ describe('catalogue read API against PostgreSQL', () => {
   });
 
   it.each(['name', 'name-desc'])(
-    'sorts %s with null names last and a stable SKU tie-breaker',
+    'sorts %s with null names last, default equivalence, and a stable SKU tie-breaker',
     async (sort) => {
       const response = await list({ sort, limit: 20 }).expect(200);
       const ids = skus(response.body);
       expect(ids.at(-1)).toBe('P-005');
       expect(ids.indexOf('P-001')).toBeLessThan(ids.indexOf('P-002'));
-      if (sort === 'name')
-        expect(ids.indexOf('P-001')).toBeLessThan(ids.indexOf('P-003'));
-      else expect(ids.indexOf('P-003')).toBeLessThan(ids.indexOf('P-001'));
+      if (sort === 'name') {
+        expect(ids).toEqual([
+          'X-101',
+          'X-100',
+          'P-001',
+          'P-002',
+          'P-003',
+          'P-004',
+          'P-005',
+        ]);
+        const defaultSorted = await list({ limit: 20 }).expect(200);
+        expect(skus(defaultSorted.body)).toEqual(ids);
+      } else {
+        expect(ids).toEqual([
+          'P-004',
+          'P-003',
+          'P-001',
+          'P-002',
+          'X-100',
+          'X-101',
+          'P-005',
+        ]);
+      }
     },
   );
+
+  it('sorts product names case-insensitively before breaking ties by SKU', async () => {
+    await database.product.create({
+      data: {
+        sku: 'P-008',
+        name: 'acorn',
+        status: 'ACTIVE',
+        applicationArea: 'Coatings',
+        lastImportedAt: new Date('2026-01-01T12:00:00Z'),
+      },
+    });
+    const response = await list({ sort: 'name', limit: 20 }).expect(200);
+    const ids = skus(response.body);
+    expect(ids.indexOf('P-008')).toBeLessThan(ids.indexOf('P-003'));
+  });
 
   it('uses a stable SKU tie-breaker and returns every product exactly once across batches', async () => {
     const first = await list({
@@ -343,26 +432,50 @@ describe('catalogue read API against PostgreSQL', () => {
     );
   });
 
-  it.each([0, 1, 2])(
+  it.each([0, 1, 2, 3])(
     'handles result count %i around a two-item batch boundary',
     async (count) => {
-      const search =
-        count === 0 ? 'does-not-exist' : count === 1 ? 'p-003' : 'alpha';
-      const response = await list({ search, limit: 2, offset: 0 }).expect(200);
-      expect(response.body.items).toHaveLength(count);
+      const query =
+        count === 0
+          ? { search: 'does-not-exist' }
+          : count === 1
+            ? { search: 'p-003' }
+            : count === 2
+              ? { search: 'alpha' }
+              : { applicationArea: 'Coatings' };
+      const response = await list({ ...query, limit: 2, offset: 0 }).expect(
+        200,
+      );
+      expect(response.body.items).toHaveLength(Math.min(count, 2));
       expect(response.body.total).toBe(count);
-      expect(response.body.nextOffset).toBeNull();
+      expect(response.body.nextOffset).toBe(count > 2 ? 2 : null);
     },
   );
+
+  it('accepts the maximum batch limit of 100', async () => {
+    const response = await list({ limit: 100, offset: 0 }).expect(200);
+    expect(response.body.items).toHaveLength(7);
+  });
 
   it.each([
     { limit: 0 },
     { limit: -1 },
     { limit: 'abc' },
+    { limit: '10.5' },
+    { limit: 101 },
     { limit: 10000 },
+    { limit: ['10', '20'] },
     { offset: -1 },
+    { offset: 'abc' },
+    { offset: 1000001 },
+    { offset: ['0', '1'] },
     { status: 'invented' },
+    { status: ['ACTIVE', 'invented'] },
+    { applicationArea: '   ' },
     { sort: 'invented' },
+    { sort: ['name', 'name-desc'] },
+    { search: ['a', 'b'] },
+    { search: 'x'.repeat(500) },
   ])('rejects invalid query %j with a client error', async (query) => {
     await list(query).expect(400);
   });

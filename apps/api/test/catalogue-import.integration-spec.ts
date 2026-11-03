@@ -1,7 +1,15 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { randomUUID } from 'node:crypto';
 import { Pool } from 'pg';
 import { importCatalogue } from '../src/catalogue-import.js';
@@ -128,11 +136,27 @@ describe('catalogue snapshot persistence', () => {
   it('updates existing data and clears fields that are now unknown', async () => {
     await run(csv(row('P-1', 'Original', 'Active', '2020', 'Vegan')), times[0]);
     const [first] = await products();
-    await run(csv(row('p-1', '', 'Discontinued', 'n/a', '')), times[1]);
+    const outcome = await run(
+      csv('p-1, , , , , , ,Discontinued,n/a, '),
+      times[1],
+    );
+    expect(outcome).toEqual(
+      expect.objectContaining({
+        created: 0,
+        updated: 1,
+        unchanged: 0,
+        absent: 0,
+      }),
+    );
     expect(await products()).toEqual([
       expect.objectContaining({
         id: first.id,
         name: null,
+        chemicalName: null,
+        function: null,
+        applicationArea: null,
+        region: null,
+        description: null,
         status: 'DISCONTINUED',
         launchYear: null,
         certifications: [],
@@ -144,14 +168,34 @@ describe('catalogue snapshot persistence', () => {
   });
 
   it('marks missing products absent, keeps them unchanged while absent, and restores their identity when they return', async () => {
-    await run(
-      csv(row('P-1', 'First', 'Discontinued'), row('P-2', 'Second')),
+    const initial = await run(
+      csv(
+        row('P-1', 'First', 'Discontinued'),
+        row('P-2', 'Second'),
+        row('P-3', 'Third', 'Active'),
+      ),
       times[0],
     );
-    const [first] = await products();
-    await run(csv(row('P-2', 'Second')), times[1]);
-    let [missing] = await products();
-    expect(missing).toEqual(
+    expect(initial).toEqual(
+      expect.objectContaining({
+        created: 3,
+        updated: 0,
+        unchanged: 0,
+        absent: 0,
+      }),
+    );
+    const [first, , third] = await products();
+    const firstAbsence = await run(csv(row('P-2', 'Second')), times[1]);
+    expect(firstAbsence).toEqual(
+      expect.objectContaining({
+        created: 0,
+        updated: 0,
+        unchanged: 1,
+        absent: 2,
+      }),
+    );
+    let [missingFirst, , missingThird] = await products();
+    expect(missingFirst).toEqual(
       expect.objectContaining({
         id: first.id,
         name: 'First',
@@ -162,23 +206,71 @@ describe('catalogue snapshot persistence', () => {
         lastImportedAt: times[0],
       }),
     );
-    await run(csv(row('P-2', 'Second')), times[2]);
-    [missing] = await products();
-    expect(missing).toEqual(
+    expect(missingThird).toEqual(
+      expect.objectContaining({
+        id: third.id,
+        name: 'Third',
+        status: 'ACTIVE',
+        presentInLatestImport: false,
+        createdAt: times[0],
+        updatedAt: times[1],
+        lastImportedAt: times[0],
+      }),
+    );
+    const secondAbsence = await run(csv(row('P-2', 'Second')), times[2]);
+    expect(secondAbsence).toEqual(
+      expect.objectContaining({
+        created: 0,
+        updated: 0,
+        unchanged: 1,
+        absent: 0,
+      }),
+    );
+    [missingFirst, , missingThird] = await products();
+    expect(missingFirst).toEqual(
       expect.objectContaining({
         updatedAt: times[1],
         lastImportedAt: times[0],
       }),
     );
-    await run(
-      csv(row('P-1', 'Returned', 'Active'), row('P-2', 'Second')),
+    expect(missingThird).toEqual(
+      expect.objectContaining({
+        updatedAt: times[1],
+        lastImportedAt: times[0],
+      }),
+    );
+    const restored = await run(
+      csv(
+        row('P-1', 'Returned', 'Active'),
+        row('P-2', 'Second'),
+        row('P-3', 'Third', 'Active'),
+      ),
       times[3],
     );
-    const [returned] = await products();
-    expect(returned).toEqual(
+    expect(restored).toEqual(
+      expect.objectContaining({
+        created: 0,
+        updated: 2,
+        unchanged: 1,
+        absent: 0,
+      }),
+    );
+    const [returnedFirst, , returnedThird] = await products();
+    expect(returnedFirst).toEqual(
       expect.objectContaining({
         id: first.id,
         name: 'Returned',
+        status: 'ACTIVE',
+        presentInLatestImport: true,
+        createdAt: times[0],
+        updatedAt: times[3],
+        lastImportedAt: times[3],
+      }),
+    );
+    expect(returnedThird).toEqual(
+      expect.objectContaining({
+        id: third.id,
+        name: 'Third',
         status: 'ACTIVE',
         presentInLatestImport: true,
         createdAt: times[0],
@@ -286,7 +378,9 @@ describe('seed command', () => {
   it('limits each warning type in yellow console output and retains complete details in the log', async () => {
     const rows: string[] = [];
     for (let i = 1; i <= 5; i++) {
-      rows.push(row(`P-${i}`, `Private first ${i}`, 'Active', 'bad-year'));
+      rows.push(
+        row(`P-${i}`, i <= 3 ? '' : `Private first ${i}`, 'Active', 'bad-year'),
+      );
       rows.push(row(`P-${i}`, `Private second ${i}`, 'Discontinued'));
     }
     const path = fixture('many-warnings.csv', csv(...rows));
@@ -295,12 +389,14 @@ describe('seed command', () => {
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toContain('\x1b[33m');
     expect(result.stderr).toContain('\x1b[0m');
+    expect(result.stderr).toMatch(/Missing name \(3\)/);
     expect(result.stderr).toMatch(/Conflicting duplicate \(5\)/);
     expect(result.stderr).toMatch(/Invalid launch year \(5\)/);
     expect(result.stderr.match(/\.\.\. and 2 more/g)).toHaveLength(2);
     expect(result.stderr).not.toContain('P-4');
     expect(result.stderr).not.toContain('Private first');
     expect(result.stderr).toContain(result.logPath);
+    expect(log.match(/\[Missing name\]/g)).toHaveLength(3);
     expect(log.match(/\[Conflicting duplicate\]/g)).toHaveLength(5);
     expect(log.match(/\[Invalid launch year\]/g)).toHaveLength(5);
     expect(log).toContain('Private first 5');
@@ -330,6 +426,36 @@ describe('seed command', () => {
     expect(result.exitCode).toBe(1);
     expect(result.stderr).toMatch(/could not create log/i);
     expect(await products()).toEqual(before);
+  });
+
+  it('reports when the final log write fails after the database import has already completed', async () => {
+    const input = fixture('post-commit-log.csv', csv(row('P-1', 'Committed')));
+    const logDir = join(fixtureDirectory, 'post-commit-logs');
+    const fileUrl = pathToFileURL(input);
+    let stringified = 0;
+    fileUrl.toString = () => {
+      stringified++;
+      if (stringified === 2) {
+        for (const entry of readdirSync(logDir)) {
+          const logFile = join(logDir, entry);
+          rmSync(logFile);
+          mkdirSync(logFile);
+        }
+      }
+      return input;
+    };
+    const result = await runSeed({
+      databaseUrl,
+      filePath: fileUrl as unknown as string,
+      logDirectory: logDir,
+    });
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toMatch(
+      /could not write full import log.*database import has already completed/i,
+    );
+    expect(await products()).toEqual([
+      expect.objectContaining({ sku: 'P-1', name: 'Committed' }),
+    ]);
   });
 
   it('reports correct update, unchanged, creation and absence counts on the next snapshot', async () => {
@@ -372,20 +498,22 @@ describe('seed command', () => {
     }
   });
 
-  it('reports a database failure as unsuccessful', async () => {
+  it('reports a missing or unreachable database as unsuccessful', async () => {
     const path = fixture('valid.csv', csv(row('P-1')));
     const badUrl = new URL(databaseUrl);
     badUrl.port = '1';
-    const result = await runSeed({
-      databaseUrl: badUrl.toString(),
-      filePath: path,
-    });
-    expect(result.exitCode).not.toBe(0);
-    expect(`${result.stdout}\n${result.stderr}`).toMatch(
-      /error|failed|database/i,
-    );
-    expect(`${result.stdout}\n${result.stderr}`).not.toMatch(
-      /import (completed|succeeded)/i,
-    );
+    for (const candidateUrl of ['', badUrl.toString()]) {
+      const result = await runSeed({
+        databaseUrl: candidateUrl,
+        filePath: path,
+      });
+      expect(result.exitCode).not.toBe(0);
+      expect(`${result.stdout}\n${result.stderr}`).toMatch(
+        /error|failed|database/i,
+      );
+      expect(`${result.stdout}\n${result.stderr}`).not.toMatch(
+        /import (completed|succeeded)/i,
+      );
+    }
   });
 });

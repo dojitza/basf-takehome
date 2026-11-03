@@ -44,6 +44,10 @@ describe('PIM catalogue snapshot', () => {
         description: 'Description  with spaces',
       }),
     ]);
+    expect(result.warnings).toEqual([]);
+    expect(result.diagnostics).toEqual([]);
+    expect(result.rowCount).toBe(1);
+    expect(result.duplicateRows).toBe(0);
   });
 
   it('accepts BOM, CRLF, blank lines and a trailing newline', () => {
@@ -70,16 +74,36 @@ describe('PIM catalogue snapshot', () => {
 
   it('keeps missing optional text as null, warning about a missing name', () => {
     const result = parseCatalogueSnapshot(
-      snapshot(row({ name: ' ', chemical_name: '', description: '' })),
+      snapshot(
+        row({
+          name: ' ',
+          chemical_name: '',
+          function: ' ',
+          application_area: '',
+          region: ' ',
+          description: '',
+        }),
+      ),
     );
     expect(result.products[0]).toEqual(
       expect.objectContaining({
         name: null,
         chemicalName: null,
+        function: null,
+        applicationArea: null,
+        region: null,
         description: null,
       }),
     );
-    expect(result.warnings.join('\n')).toMatch(/P-1/i);
+    expect(result.warnings).toEqual([
+      expect.stringMatching(/line 2.*P-1.*missing name/i),
+    ]);
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({
+        type: 'Missing name',
+        summary: expect.stringMatching(/line 2.*P-1.*missing name/i),
+      }),
+    ]);
   });
 
   it('splits, trims and deduplicates certifications; an empty field yields an empty list', () => {
@@ -103,6 +127,7 @@ describe('PIM catalogue snapshot', () => {
   ])('normalizes status %s to %s', (input, expected) => {
     const result = parseCatalogueSnapshot(snapshot(row({ status: input })));
     expect(result.products[0].status).toBe(expected);
+    expect(result.warnings).toEqual([]);
   });
 
   it.each(['', 'retired'])(
@@ -110,27 +135,49 @@ describe('PIM catalogue snapshot', () => {
     (status) => {
       const result = parseCatalogueSnapshot(snapshot(row({ status })));
       expect(result.products[0].status).toBe('UNKNOWN');
-      expect(result.warnings.join('\n')).toMatch(/P-1/i);
+      expect(result.warnings.join('\n')).toMatch(
+        /line 2.*P-1.*unrecognized status/i,
+      );
       if (status) expect(result.warnings.join('\n')).toContain(status);
+      expect(result.diagnostics).toEqual([
+        expect.objectContaining({ type: 'Unknown status' }),
+      ]);
     },
   );
 
-  it.each(['', 'n/a'])('treats launch year %j as unknown', (launch_year) => {
-    expect(
-      parseCatalogueSnapshot(snapshot(row({ launch_year }))).products[0]
-        .launchYear,
-    ).toBeNull();
-  });
-
-  it.each(['not-a-year', '2020.5', '2020x', '2e3', '999999999999999999999'])(
-    'warns and treats malformed year %s as unknown',
+  it.each(['', 'n/a', 'N/A'])(
+    'treats launch year %j as unknown without warning',
     (launch_year) => {
       const result = parseCatalogueSnapshot(snapshot(row({ launch_year })));
       expect(result.products[0].launchYear).toBeNull();
-      expect(result.warnings.join('\n')).toContain(launch_year);
-      expect(result.warnings.join('\n')).toMatch(/P-1/i);
+      expect(result.warnings).toEqual([]);
     },
   );
+
+  it.each([
+    'not-a-year',
+    '2020.5',
+    '2020x',
+    '2e3',
+    '-2020',
+    '0',
+    '99',
+    '+2020',
+    '10000',
+    '3000000000',
+    '-3000000000',
+    '999999999999999999999',
+  ])('warns and treats malformed year %s as unknown', (launch_year) => {
+    const result = parseCatalogueSnapshot(snapshot(row({ launch_year })));
+    expect(result.products[0].launchYear).toBeNull();
+    expect(result.warnings.join('\n')).toContain(launch_year);
+    expect(result.warnings.join('\n')).toMatch(
+      /line 2.*P-1.*invalid launch year/i,
+    );
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({ type: 'Invalid launch year' }),
+    ]);
+  });
 
   it.each([
     ['', 'empty'],
@@ -138,6 +185,7 @@ describe('PIM catalogue snapshot', () => {
     [header, 'header only'],
     ['sku,name\nP-1,Example', 'missing headers'],
     [`${header},sku\n${row()},P-1`, 'duplicate header'],
+    [`${header},extra\n${row()},value`, 'unknown header'],
     [`${header}\n${row({ sku: ' ' })}`, 'missing SKU'],
     [`${header}\n${row()}\n,,,,,,,,,`, 'empty record with missing SKU'],
     [`${header}\nP-1,Example`, 'short row'],
@@ -158,8 +206,13 @@ describe('PIM catalogue snapshot', () => {
       snapshot(row(), row({ sku: ' p-1 ', status: ' ACTIVE ' })),
     );
     expect(result.products).toHaveLength(1);
-    expect(result.warnings.join('\n')).toMatch(/P-1/i);
+    expect(result.rowCount).toBe(2);
+    expect(result.duplicateRows).toBe(1);
+    expect(result.warnings.join('\n')).toMatch(/duplicate.*P-1.*2.*3/i);
     expect(result.warnings.join('\n')).not.toMatch(/conflict/i);
+    expect(result.diagnostics).toEqual([
+      expect.objectContaining({ type: 'Identical duplicate' }),
+    ]);
   });
 
   const statuses = [
@@ -188,7 +241,12 @@ describe('PIM catalogue snapshot', () => {
       expect(result.products[0]).toEqual(
         expect.objectContaining({ status: winner, name: winningInput }),
       );
-      expect(result.warnings.join('\n')).toMatch(/P-1/i);
+      expect(result.warnings.join('\n')).toMatch(/conflict.*P-1/i);
+      expect(result.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ type: 'Conflicting duplicate' }),
+        ]),
+      );
     },
   );
 
@@ -242,9 +300,27 @@ describe('PIM catalogue snapshot', () => {
       ),
     );
     expect(result.products).toHaveLength(1);
+    expect(result.rowCount).toBe(4);
+    expect(result.duplicateRows).toBe(3);
     expect(result.products[0]).toEqual(
       expect.objectContaining({ name: 'Replacement', status: 'DISCONTINUED' }),
     );
+  });
+
+  it('treats a later row matching an earlier winner after a conflict as a conflicting tie-break on the later line', () => {
+    const result = parseCatalogueSnapshot(
+      snapshot(
+        row({ name: 'Stopped', status: 'Discontinued' }),
+        row({ name: 'Optimistic', status: 'Active' }),
+        row({ sku: 'p-1', name: 'Stopped', status: 'discontinued' }),
+      ),
+    );
+    expect(result.products).toHaveLength(1);
+    expect(result.duplicateRows).toBe(2);
+    expect(
+      result.diagnostics.every(({ type }) => type === 'Conflicting duplicate'),
+    ).toBe(true);
+    expect(result.warnings.at(-1)).toMatch(/selected row 4 \(DISCONTINUED\)/i);
   });
 
   it('normalizes the supplied export with its known anomalies', () => {

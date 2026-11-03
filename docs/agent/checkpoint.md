@@ -2,7 +2,7 @@
 
 ## Current state
 
-The human approved and requested the bootstrap proposal, with PrimeNG Community and no product features. The repository now has npm workspaces for Angular 22 (`apps/web`) and NestJS 12 ESM (`apps/api`), Prisma 7.10.1, PostgreSQL Compose, Jest in both apps, ESLint/Prettier and CI configuration. Root README contains run/check instructions; DECISIONS.md describes foundation choices and outstanding domain decisions. ASSIGNMENT.md and data/products.csv are preserved.
+The bootstrap uses PrimeNG Community; the catalogue import is implemented, and browsing remains test-first work. The repository now has npm workspaces for Angular 22 (`apps/web`) and NestJS 12 ESM (`apps/api`), Prisma 7.10.1, PostgreSQL Compose, Jest in both apps, ESLint/Prettier and CI configuration. Root README contains run/check instructions; DECISIONS.md describes foundation choices and outstanding domain decisions. ASSIGNMENT.md and data/products.csv are preserved.
 
 The shell and readiness endpoint are infrastructure only. The import slice adds a Product model, migration and manual complete-snapshot seed. No products/reviews API or UI or review model exists. Human review of the import is pending.
 
@@ -16,4 +16,4 @@ Use Node 22.22.3/npm 10. Root `npm run check` runs lint, format check, Jest and 
 
 ## Continuation
 
-Consult dev.log.md for exact verification evidence/status and testing-strategy.md for the planned development and Playwright workflow. Bootstrap verification passed locally (see dev.log.md). The import is implemented and tested. The next catalogue-browsing slice is under discussion in catalogue-browsing-plan.md; catalogue-browsing-tests.md lists the requested tests. Conditional and later tests are tracked in TODO.md. Domain behavior and API details not yet agreed are marked open.
+Consult dev.log.md for exact verification evidence/status and testing-strategy.md for the planned development and Playwright workflow. Bootstrap verification passed locally (see dev.log.md). The catalogue-browsing plan and test list were committed as 96a3232. Initial frontend, PostgreSQL/API and Playwright tests are uncommitted and intentionally red because the catalogue screen/API do not exist; see catalogue-browsing-tests.md for the provisional HTTP contract and dev.log.md for evidence. Agreed catalogue rules are in catalogue-browsing-plan.md. Recent searches, product details, reviews and performance diagnostics are deferred in TODO.md.

@@ -10,9 +10,11 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
       - run: npm ci
+      - run: npx playwright install --with-deps chromium
       - run: npm run check
       - run: docker compose up --build --wait
       - run: npm run test:integration
+      - run: npm run test:e2e
       - run: curl --fail http://localhost:8180/api/health
       - if: always()
         run: docker compose --profile test down

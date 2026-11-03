@@ -1,12 +1,14 @@
 # Catalogue browsing — proposed behavioral coverage
 
-Status at plan commit: the human requested implementation of this behavior list; conditional and later tests are logged in TODO.md. No browsing tests have been implemented or run yet. Existing import tests remain separate. This list concerns the browsing slice; product details and review flows are deferred. These are behavior groups, not a promised number of test cases.
+Status: an initial test-first batch exists in `apps/web/src/app/catalogue-browsing.spec.ts`, `apps/api/test/catalogue-browsing.integration-spec.ts` and `tests/e2e/catalogue-browsing.spec.ts`. The new tests currently stop at the missing catalogue request, endpoint or screen; their later assertions remain unverified. The browser runner creates its own temporary database and local processes; see README for commands. Existing import tests remain separate. These are behavior groups, not a promised number of test cases.
 
 Use the smallest boundary that proves a behavior. A few browser journeys intentionally overlap lower-level assertions to verify real wiring; do not repeat every combination across suites. Test existing PrimeNG controls through our composition and configuration, rather than reproducing the library's own suite. Design images are illustrative and are not test specifications.
 
 ## Decisions needed before concrete expectations
 
-Agree search fields/matching, supported filters and their combination rules, visibility defaults, sort options and tie-breaking, query validation and batch contract. Also settle drawer Apply/Cancel semantics, search submission, recent-search scope and return-to-results behavior. Tests below cover the agreed behavior once these choices are made; they do not silently settle them. Shared catalogue URLs restore search/filter/sort; exact shared scroll position is not agreed.
+The human selected trimmed, case-insensitive substring search over product name and SKU; present products by default; status and application-area filters; OR within a filter and AND across filters; and name ascending/descending with unnamed products last and SKU tie-breaks. Unavailable combines unknown and absent products, while discontinued remains separate and source status/presence remain independent. Desktop searches after a pause and commits a history entry on Enter or blur; mobile waits for confirmation. Invalid filter/sort URL values are ignored with a short warning and defaults. Drawer edits require Apply; dismissing discards drafts. Recent searches, product details and reviews are deferred. Query validation details, wire format and returning to the previous list position remain open. Exact shared scroll position is not agreed.
+
+The tests use a **provisional test adapter**: `GET /api/products`, `search`, repeated `status`/`applicationArea`, `sort`, `limit` and `offset`, returning `items`, `total` and `nextOffset`. These names and the offset choice are test scaffolding, not an approved API contract. Adjust the adapter and assertions together when the API is designed; preserve the agreed behaviors.
 
 ## Frontend unit/state — Jest
 
@@ -71,7 +73,7 @@ Use a real browser, frontend, NestJS API and isolated PostgreSQL. Most requests 
 
 ## Conditional and later coverage
 
-- **Recent searches, if included:** local history records only the agreed committed searches, respects its chosen limit/deduplication rules, supports selecting/removing/clearing, and survives unavailable or corrupt browser storage without breaking search. Unit tests cover the storage policy; one frontend integration case covers using a recent entry, without another browser journey.
+- **Recent searches, deferred:** local history records only the agreed committed searches, respects its chosen limit/deduplication rules, supports selecting/removing/clearing, and survives unavailable or corrupt browser storage without breaking search. Unit tests cover the storage policy; one frontend integration case covers using a recent entry, without another browser journey.
 - **Product details, when built:** whole-row navigation, fresh direct product URLs, unavailable/missing product behavior and returning to the prior catalogue criteria/place.
 - **Reviews, when designed:** individual-review links, including opening a review that is not initially loaded; read/write validation, successful submission and rating behavior. Preserve reviews across re-import in database integration, not by duplicating the complete import suite in Playwright.
 - **50,000-product diagnostic:** perform a representative database/query and browser growth check when choosing query/index and list-retention behavior. Keep bulk data setup, EXPLAIN and performance diagnostics outside the frequent correctness suite; do not add brittle wall-clock assertions.

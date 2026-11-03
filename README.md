@@ -78,7 +78,18 @@ The integration test starts a separate PostgreSQL container on port 5433:
 npm run test:integration
 ```
 
-It exercises HTTP readiness and the catalogue import against an isolated test database, without using the development database. Import tests create and remove a uniquely named schema; the test container stores data in memory and loses it when stopped. Stop it with `docker compose --profile test stop test-db`. CI runs the root checks, container startup and integration test; hosted CI results are separate from local verification.
+It exercises HTTP readiness, catalogue import and the planned browsing API against an isolated test database, without using the development database. Import and browsing tests create and remove uniquely named schemas; the test container stores data in memory and loses it when stopped. Stop it with `docker compose --profile test stop test-db`.
+
+The browsing tests are written ahead of the feature and currently fail: the application does not yet provide the catalogue screen or product API. Their request/response shape is a provisional test contract while the API is designed.
+
+Browser tests use Playwright and Chromium:
+
+```sh
+npx playwright install chromium
+npm run test:e2e
+```
+
+The browser command starts the isolated test PostgreSQL container on port 5433, creates and migrates a uniquely named temporary database, loads synthetic fixtures, starts its own API and frontend on dynamically selected local ports, runs Playwright and removes its own database and processes. It does not reset the development database or stop an already running development server. The test container is left running for reuse. Failed-test traces are stored under the ignored `test-results/` directory. Browser/OS dependencies may require `npx playwright install --with-deps chromium` on Linux. CI runs these same checks; hosted CI results are separate from local verification.
 
 ## Database migrations and CSV import
 

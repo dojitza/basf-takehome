@@ -274,3 +274,21 @@ Codex used shell commands, Python file operations and apply_patch to inspect and
 ## 2026-11-03 — Commit the plan and start test-first browsing
 
 - Human requested logging deferred tests, committing the browsing plan, and then implementing the test list. Codex recorded later detail/review, optional recent-search, performance and accessibility coverage in TODO.md, and prepared a scoped plan commit. The request authorizes test implementation; unagreed product behavior and interfaces remain provisional.
+
+## 2026-11-03 — Agree initial catalogue rules while writing tests
+
+- Human requested discussing the catalogue rules while the test work is underway. From the presented options, the human chose trimmed case-insensitive substring search on product name and SKU; displaying all products in the latest import with clear status by default; and status plus application-area filters. Absent products remain excluded by default as previously agreed. Filter combinations, sorting and the explicit absent-product control are still being discussed; any test wire format is provisional.
+
+- The human then chose OR within each filter and AND across filter groups; name A–Z and Z–A with A–Z as default, unnamed products last and SKU as tie-breaker; and a separate “Not in latest import” availability option. The exact absent-option behavior, search submission and recent-search scope remain under discussion.
+
+- Human changed the separate absent-product option: absent products should be bundled with unavailable/unknown statuses as unavailable in the UI, while source status and absence remain distinguishable in storage. Human selected automatic search after a pause on desktop, confirmed search on mobile, and inclusion of local recent searches. Codex requested clarification of the exact unavailable mapping, which searches are recorded and history behavior; tests and plan are being adjusted.
+
+- Human clarified that the unavailable UI category includes unknown and absent products; discontinued remains separate. Searches committed from desktop and mobile should both appear in local recent history. Human asked how a typing pause relates to browser history and suggested focus loss; Codex explained the debounce interval and asked whether Enter/focus loss should create one entry. That history decision remains pending.
+
+- Human chose one browser-history entry when a desktop search is committed with Enter or by leaving the field; results still update automatically after a typing pause. Back should return to the previous committed view. Recorded the decision for browser coverage.
+
+- Human changed the recent-search decision again: remove search saving/recent searches from the slice and document it as a later option. Human chose to ignore invalid or unsupported shared-URL filter/sort values with a short warning and defaults, and confirmed drawer changes apply explicitly while dismissal discards drafts. Codex removed recent-search tests from the current suite and updated the deferred list and test expectations.
+
+- Codex implemented a test-first browsing batch and an isolated Playwright harness using Jest, Supertest, PostgreSQL and Chromium. The tests use a provisional HTTP/offset contract for review; it is not an agreed API design. Current runs reach the missing UI/API and fail there, so later assertions and performance are not yet verified. Existing import/readiness tests and application builds were checked separately. The tests and follow-up decisions remain uncommitted.
+
+- During test review, Codex corrected its own browser fixture mismatch: the second search in the sharing journey originally selected a product outside the active application-area filter. Adjusted the synthetic fixture and test data, then verified isolated stack startup and test discovery. This was an agent self-correction, not a human-directed change.

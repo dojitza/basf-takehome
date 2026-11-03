@@ -10,3 +10,7 @@ coverage/
 *.tsbuildinfo
 apps/web/src/primeng-license.local.ts
 logs/
+playwright-report/
+test-results/
+/REFERENCE.md
+/reference.md

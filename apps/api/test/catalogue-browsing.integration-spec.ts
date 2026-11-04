@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
 import type { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 import request from 'supertest';
@@ -21,6 +21,7 @@ let databaseUrl: string;
 let createdSchema = false;
 
 type Item = {
+  id: string;
   sku: string;
   name: string | null;
   status: string;
@@ -181,6 +182,7 @@ describe('catalogue read API against PostgreSQL', () => {
     });
     const p001 = response.body.items.find((item: Item) => item.sku === 'P-001');
     expect(p001).toEqual({
+      id: expect.any(String),
       sku: 'P-001',
       name: 'Alpha',
       status: 'ACTIVE',
@@ -193,6 +195,7 @@ describe('catalogue read API against PostgreSQL', () => {
       'applicationArea',
       'chemicalName',
       'function',
+      'id',
       'name',
       'presentInLatestImport',
       'sku',
@@ -541,4 +544,348 @@ describe('catalogue dependency failure', () => {
       await brokenApp.close();
     }
   });
+});
+
+describe('product details API against PostgreSQL', () => {
+  it('includes the product identity in catalogue results', async () => {
+    const uuidPattern =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const product = await database.product.findUniqueOrThrow({
+      where: { sku: 'P-001' },
+    });
+    const page = await list().expect(200);
+    expect(page.body.items.length).toBeGreaterThan(0);
+    for (const item of page.body.items as Item[]) {
+      expect(item.id).toMatch(uuidPattern);
+    }
+    expect(
+      page.body.items.find((item: Item) => item.sku === product.sku)?.id,
+    ).toBe(product.id);
+  });
+
+  const detailKeys = [
+    'applicationArea',
+    'certifications',
+    'chemicalName',
+    'description',
+    'function',
+    'id',
+    'launchYear',
+    'name',
+    'presentInLatestImport',
+    'region',
+    'sku',
+    'status',
+  ];
+
+  it('returns all customer-facing fields without import metadata and preserves multiple certifications', async () => {
+    const product = await database.product.update({
+      where: { sku: 'P-001' },
+      data: { certifications: ['ISO 9001', 'REACH', 'Halal'] },
+    });
+    const response = await request(app.getHttpServer())
+      .get(`${endpoint}/${product.id}`)
+      .expect(200);
+    expect(response.body).toEqual({
+      id: product.id,
+      sku: 'P-001',
+      name: 'Alpha',
+      chemicalName: 'Acrylic dispersion',
+      function: 'Binder',
+      applicationArea: 'Coatings',
+      region: 'Europe',
+      certifications: ['ISO 9001', 'REACH', 'Halal'],
+      status: 'ACTIVE',
+      launchYear: 2021,
+      description: 'Internal detail text',
+      presentInLatestImport: true,
+    });
+    expect(Object.keys(response.body).sort()).toEqual(detailKeys);
+  });
+
+  it.each(['P-002', 'P-003', 'P-004', 'P-006', 'P-007'])(
+    'retrieves %s regardless of status, absence or unrelated/invalid catalogue query parameters',
+    async (sku) => {
+      const product = await database.product.findUniqueOrThrow({
+        where: { sku },
+      });
+      const response = await request(app.getHttpServer())
+        .get(`${endpoint}/${product.id}`)
+        .query({
+          search: 'not a match',
+          status: 'BOGUS',
+          sort: 'invalid',
+          limit: 'abc',
+          offset: '-1',
+        })
+        .expect(200);
+      expect(response.body).toMatchObject({
+        id: product.id,
+        sku,
+        status: product.status,
+        presentInLatestImport: product.presentInLatestImport,
+      });
+      expect(Object.keys(response.body).sort()).toEqual(detailKeys);
+    },
+  );
+
+  it('preserves missing values across all nullable fields for the UI to explain', async () => {
+    const product = await database.product.update({
+      where: { sku: 'P-005' },
+      data: { applicationArea: null },
+    });
+    const response = await request(app.getHttpServer())
+      .get(`${endpoint}/${product.id}`)
+      .expect(200);
+    expect(response.body).toEqual({
+      id: product.id,
+      sku: 'P-005',
+      name: null,
+      chemicalName: null,
+      function: null,
+      applicationArea: null,
+      region: null,
+      certifications: [],
+      status: 'ACTIVE',
+      launchYear: null,
+      description: null,
+      presentInLatestImport: true,
+    });
+    expect(Object.keys(response.body).sort()).toEqual(detailKeys);
+  });
+
+  it('accepts uppercase and mixed-case UUID representations for an existing product', async () => {
+    const product = await database.product.findUniqueOrThrow({
+      where: { sku: 'P-001' },
+    });
+    const upper = product.id.toUpperCase();
+    const mixed = [...product.id]
+      .map((ch, idx) => (idx % 2 === 0 ? ch.toUpperCase() : ch.toLowerCase()))
+      .join('');
+    for (const candidate of [upper, mixed]) {
+      const response = await request(app.getHttpServer())
+        .get(`${endpoint}/${candidate}`)
+        .expect(200);
+      expect(response.body.id).toBe(product.id);
+      expect(response.body.sku).toBe('P-001');
+    }
+  });
+
+  it('returns domain 404 (not route-missing Cannot GET) for malformed or absent identities, including property-generated invalid IDs', async () => {
+    // Insert a synthetic non-UUID primary key directly via SQL to prove the API
+    // validates UUID format rather than blindly querying arbitrary text primary keys.
+    await pool.query(
+      `INSERT INTO "${schema}"."Product" (id, sku, status, "presentInLatestImport", certifications, "createdAt", "updatedAt", "lastImportedAt") VALUES ($1, $2, 'ACTIVE', true, '{}', NOW(), NOW(), NOW())`,
+      ['not-a-uuid-pk', 'P-NON-UUID'],
+    );
+    let seed = 0x5eed1234;
+    const nextRand = () => {
+      seed = (seed + 0x6d2b79f5) | 0;
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const alphabet =
+      'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_~.!$&()*+,;=@%';
+    const generatedInvalidIds = Array.from({ length: 20 }, (_, index) => {
+      const len = 1 + Math.floor(nextRand() * 45);
+      let out = '';
+      for (let i = 0; i < len; i++) {
+        out += alphabet[Math.floor(nextRand() * alphabet.length)];
+      }
+      return `invalid-${index}-${out}`;
+    });
+    const malformedAndAbsent = [
+      randomUUID(),
+      'invalid',
+      'not-a-uuid-pk',
+      'P-001',
+      '12345',
+      '00000000-0000-0000-0000-00000000000g',
+      '00000000-0000-4000-8000-00000000000',
+      '00000000-0000-4000-8000-0000000000000',
+      '00000000000040008000000000000000',
+      "' OR 1=1 --",
+      ...generatedInvalidIds,
+    ];
+    for (const candidate of malformedAndAbsent) {
+      const response = await request(app.getHttpServer())
+        .get(`${endpoint}/${encodeURIComponent(candidate)}`)
+        .expect(404);
+      expect(String(response.body?.message ?? '')).not.toMatch(/^Cannot GET /i);
+      expect(JSON.stringify(response.body)).not.toMatch(
+        /stack|prisma|select .* from/i,
+      );
+    }
+  });
+
+  it('keeps a link valid across an absent snapshot and a later case-insensitive return with updated fields', async () => {
+    const original = await database.product.findUniqueOrThrow({
+      where: { sku: 'P-003' },
+    });
+    const header =
+      'sku,name,chemical_name,function,application_area,region,certifications,status,launch_year,description';
+    const row = (
+      sku: string,
+      status = 'Active',
+      name = 'Name',
+      certs = '',
+      year = '2020',
+      desc = 'Description',
+    ) =>
+      `${sku},${name},Substance,Polymer,Coatings,Global,${certs},${status},${year},${desc}`;
+    await importCatalogue({
+      databaseUrl,
+      csv: [header, row('P-001')].join('\n'),
+    });
+    const absent = await request(app.getHttpServer())
+      .get(`${endpoint}/${original.id}`)
+      .expect(200);
+    expect(absent.body).toMatchObject({
+      id: original.id,
+      sku: 'P-003',
+      status: 'DISCONTINUED',
+      presentInLatestImport: false,
+    });
+    await importCatalogue({
+      databaseUrl,
+      csv: [
+        header,
+        row('P-001'),
+        row(
+          '  p-003  ',
+          'Phase-out',
+          'Returned Beta',
+          'ISO 9001|EcoCert',
+          '2024',
+          'Updated description',
+        ),
+      ].join('\n'),
+    });
+    const returned = await request(app.getHttpServer())
+      .get(`${endpoint}/${original.id}`)
+      .expect(200);
+    expect(returned.body).toEqual({
+      id: original.id,
+      sku: 'P-003',
+      name: 'Returned Beta',
+      chemicalName: 'Substance',
+      function: 'Polymer',
+      applicationArea: 'Coatings',
+      region: 'Global',
+      certifications: ['ISO 9001', 'EcoCert'],
+      status: 'PHASE_OUT',
+      launchYear: 2024,
+      description: 'Updated description',
+      presentInLatestImport: true,
+    });
+  });
+
+  it('serves consistent product details without false 404s or 500s during concurrent imports and reads', async () => {
+    const p001 = await database.product.findUniqueOrThrow({
+      where: { sku: 'P-001' },
+    });
+    const p003 = await database.product.findUniqueOrThrow({
+      where: { sku: 'P-003' },
+    });
+    const header =
+      'sku,name,chemical_name,function,application_area,region,certifications,status,launch_year,description';
+    const csvWithoutP003 = [
+      header,
+      'P-001,Alpha v2,Acrylic dispersion,Binder,Coatings,Europe,ISO 9001,Active,2021,Updated text',
+    ].join('\n');
+    const csvWithP003 = [
+      header,
+      'P-001,Alpha v3,Acrylic dispersion,Binder,Coatings,Europe,ISO 9001,Active,2021,Updated text 3',
+      'P-003,Beta Returned,Substance,Additive,Agriculture,Global,REACH,Phase-out,2022,Restored text',
+    ].join('\n');
+
+    const reads = Array.from({ length: 12 }, (_, idx) =>
+      request(app.getHttpServer()).get(
+        `${endpoint}/${idx % 2 === 0 ? p001.id : p003.id}`,
+      ),
+    );
+    const listReads = Array.from({ length: 4 }, () => list({ limit: 20 }));
+    const imports = (async () => {
+      await importCatalogue({ databaseUrl, csv: csvWithoutP003 });
+      await importCatalogue({ databaseUrl, csv: csvWithP003 });
+    })();
+
+    const [detailResponses, listResponses] = await Promise.all([
+      Promise.all(reads),
+      Promise.all(listReads),
+      imports,
+    ]);
+
+    for (const res of detailResponses) {
+      expect(res.status).toBe(200);
+      expect(Object.keys(res.body).sort()).toEqual(detailKeys);
+      expect([p001.id, p003.id]).toContain(res.body.id);
+    }
+    for (const res of listResponses) {
+      expect(res.status).toBe(200);
+      for (const item of res.body.items as Item[]) {
+        expect(typeof item.id).toBe('string');
+      }
+    }
+  });
+});
+
+describe('product detail dependency failure', () => {
+  it.each([
+    [
+      'generic error',
+      (secret: string) => new Error(`database failed: ${secret}`),
+    ],
+    [
+      'Prisma known request error (P1001 unreachable)',
+      (secret: string) =>
+        new Prisma.PrismaClientKnownRequestError(secret, {
+          code: 'P1001',
+          clientVersion: '7.10.1',
+        }),
+    ],
+    [
+      'Prisma initialization error',
+      (secret: string) =>
+        new Prisma.PrismaClientInitializationError(secret, '7.10.1'),
+    ],
+  ])(
+    'returns a generic server error rather than 404 or internal details on %s',
+    async (_label, makeError) => {
+      const secret = 'private-detail-error-secret';
+      let calls = 0;
+      const fail = async () => {
+        calls++;
+        throw makeError(secret);
+      };
+      const module = await Test.createTestingModule({ imports: [AppModule] })
+        .overrideProvider(DatabaseService)
+        .useValue({
+          schema,
+          product: new Proxy({}, { get: () => fail }),
+          $queryRaw: fail,
+          $queryRawUnsafe: fail,
+          $transaction: fail,
+        })
+        .compile();
+      const brokenApp = module.createNestApplication();
+      brokenApp.setGlobalPrefix('api');
+      await brokenApp.init();
+      try {
+        const response = await request(brokenApp.getHttpServer()).get(
+          `${endpoint}/${randomUUID()}`,
+        );
+        expect(response.status).toBeGreaterThanOrEqual(500);
+        expect(response.status).toBeLessThan(600);
+        expect(calls).toBeGreaterThan(0);
+        expect(JSON.stringify(response.body)).not.toContain(secret);
+        expect(JSON.stringify(response.body)).not.toMatch(
+          /stack|select .* from|prisma/i,
+        );
+      } finally {
+        await brokenApp.close();
+      }
+    },
+  );
 });

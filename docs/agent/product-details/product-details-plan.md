@@ -1,13 +1,13 @@
 # Product details, sharing and navigation — v0.2.0
 
-Status: phase 1 clarification complete; consolidated understanding awaits human review. Individual behavior choices were agreed during discussion. v0.2.0 is a target, not a released or accepted version. No tests or implementation started for this slice.
+Status: phase 1 behavior reviewed by the human; phase 2 architecture accepted for proceeding; phase 3 test batch written and phase 4 adversarial test review completed. v0.2.0 is a target, not a released or accepted version. No implementation started for this slice.
 
 ## Delivery checklist
 
-- [ ] 1. Behavioral analysis and scope — clarification complete; awaiting human review of the consolidated understanding below.
-- [ ] 2. Architectural constraints — establish boundaries and contracts for the agreed behavior.
-- [ ] 3. Build tests.
-- [ ] 4. Adversarial review of tests.
+- [x] 1. Behavioral analysis and scope — consolidated behavior reviewed by the human.
+- [x] 2. Architectural constraints — proposed approach accepted for proceeding; UUID identity agreed.
+- [x] 3. Build tests — test-first batch written and baseline run; results and limitations below.
+- [x] 4. Adversarial review of tests.
 - [ ] 5. Implement to pass tests.
 - [ ] 6. Adversarial review of implementation.
 - [ ] 7. Address implementation review findings.
@@ -79,6 +79,43 @@ The human indicated the ImageGen references looked good. They are illustrative d
 - [Sharing feedback](references/sharing-feedback.png)
 - [Unavailable product and missing fields](references/unavailable-missing-fields.png)
 
-## Phase 1 review gate
+## Phase 2: architectural proposal
 
-Awaiting the human’s review of this consolidated understanding. Do not advance to phase 2 until that review is resolved. The delivery checklist remains open; no human click-through acceptance or technical verification is claimed.
+These technical choices are agreed for proceeding, but are not implemented or verified contracts. They preserve the existing technology stack and require no schema migration or new product write path.
+
+### Identity and API
+
+- Use the existing Product UUID as the route identity: `/products/:id`, and add `id` to catalogue items. The import upserts by normalized SKU and keeps the existing ID for a continuing or returning SKU. UUIDs avoid putting arbitrary imported SKU characters into route segments, but links depend on retaining the database: rebuilding it from CSV creates new IDs. A changed SKU is treated as a different product by the existing importer. SKU-based links could survive database rebuilds, but require URL-safe encoding and a policy for SKU changes. The human confirmed that survival across normal imports is sufficient; rebuild durability is not required.
+- Add `GET /api/products/:id`, selecting the agreed customer-facing fields plus status and import-presence information needed to explain availability. Look up by identity independently of catalogue filters and import presence. A malformed UUID or missing record returns 404; infrastructure failures return a server error, never a false 404. Do not expose timestamps or other import/database metadata in the response. The UUID is an opaque link identifier, not a displayed product property.
+- Keep the existing list endpoint and its bounded incremental-loading contract. Derive availability consistently for list and detail: absence takes precedence over source status, then UNKNOWN maps to unavailable. Share this mapping at the appropriate boundary without adding a general-purpose framework.
+
+### Routes, criteria and navigation
+
+- Introduce Angular catalogue and detail routes under a common application shell; extract the existing catalogue from the root component, keeping its established search, filter, sort and loading behavior. The detail page owns its request, loading, not-found and error states. A route parameter change must clear prior content and cancel or ignore obsolete responses.
+- Preserve the current catalogue query parameter names and repeated `status`/`applicationArea` values. Encode applied criteria in both catalogue and product URLs, omitting defaults. Only committed state enters links; drafts, batches and position do not. Serialize via the router so values are properly encoded. Keep criteria parsing and serialization shared between pages instead of maintaining divergent formats.
+- Continue the existing invalid-criteria policy: ignore unsupported values, use defaults and notify the customer. Application-area validity depends on current catalogue data, so preserve candidates in the detail link until the catalogue can validate them; a failed detail request must not prevent returning with those candidates. Handle oversized search and malformed or repeated scalar parameters predictably before querying; specify precise normalization in tests.
+- Product identity is independent of query parameters. Back to catalogue navigates to `/` with carried criteria, rather than relying on browser history. Browser Back naturally returns to its previous history entry; when that entry is the catalogue, reload current results at the top. Opening directly in a new tab still offers a deterministic catalogue return. Ensure navigation resets scroll and sets sensible focus after the view is rendered, including browser Back and error states.
+- Existing nginx configuration serves the Angular entry point for deep links and proxies `/api/`; verify direct routes and refresh in both development and container/browser tests. Links require a host configured for SPA fallback.
+
+### Sharing and accessibility
+
+- Generate absolute links from the current origin and the router-generated URL, without query drafts or location state. Use the Web Share API when available and a separate Copy link action; cancellation is not an error. On clipboard failure, expose a selectable link for manual copying with accessible feedback. Feature-detect browser capabilities and avoid claiming a successful copy/share without confirmation.
+- Use real anchors for product rows and catalogue return, retaining native modified-click, keyboard and context-menu behavior. Announce asynchronous loading/errors appropriately and place focus on the destination heading or equivalent landmark on page navigation; do not restore the prior row or scroll position. Respect the device's native share sheet.
+
+### Verification boundaries
+
+Phase 3 will write tests before implementation; phase 4 will review those tests adversarially. Cover the direct lookup against PostgreSQL (including retained/unknown records and errors), criteria round trips, stale-request handling, navigation and sharing fallback with focused frontend tests, plus a small set of desktop/mobile browser journeys including refresh/deep links, keyboard behavior and return to top. A real mobile share sheet and assistive-technology behavior need human/device review; mocks alone cannot establish them. Existing catalogue behavior and tests remain regression coverage.
+
+### Phase 3 test batch
+
+- PostgreSQL integration coverage in `apps/api/test/catalogue-browsing.integration-spec.ts` exercises list identity, detail fields, status and absence, missing values, imports that remove and restore a product, missing/malformed identity and service failure. The missing-ID case currently passes vacuously because all detail routes return 404.
+- Browser coverage in `tests/e2e/product-details.spec.ts` exercises desktop/mobile navigation, direct links and reload, return criteria and top position, loading/retry and stale response behavior, availability and missing fields, applied versus draft state, criteria validation, catalogue/product copy and native-share mocks, and clipboard fallback. It uses an isolated database and controlled HTTP responses where specific details or timing are required.
+- Baseline against the unimplemented application: 42 of 53 API integration tests passed and 11 failed; all 21 collected browser tests failed. Most browser journeys stop at the first missing route or control, so later assertions have not yet been exercised. One stale-response synchronization change was made after the browser baseline run; static checks cover it, but it has not been dynamically exercised. These results do not establish that the new tests will pass or are free of defects after implementation.
+- The next phase must challenge test correctness, gaps and brittleness before implementation. Device-native share sheets, real clipboard permission behavior, screen-reader output and human visual/interaction acceptance require separate review; browser mocks do not prove them.
+
+### Phase 4 adversarial test review
+
+- **Frontend Jest contradiction and missing boundary resolved:** Fixed `apps/web/src/app/catalogue-browsing.spec.ts` (which previously asserted zero `.products a` links, contradicting v0.2.0 whole-row links, and omitted `id` in sample items) and added `apps/web/src/app/product-details.spec.ts` (27 cases) covering whole-row links, all customer-facing fields, missing/unnamed fallbacks, availability precedence across all status/import combinations, markup escaping, property-based criteria round-trip and malformed-query normalization (`search > 200`, repeated scalar `search`/`sort`, whitespace-only `applicationArea`, candidate `applicationArea` preservation across 200/404/503 detail responses), stale-request concurrency, duplicate-retry guards, and API/clipboard/Web Share fault injection.
+- **PostgreSQL integration hardened (`apps/api/test/catalogue-browsing.integration-spec.ts`):** Eliminated the vacuous 404 pass (asserting domain 404 rather than NestJS's default `Cannot GET` route-missing response and verifying that non-UUID primary keys and property-generated malformed IDs are rejected), added case-insensitive UUID lookup coverage against the `TEXT` primary key, tested `applicationArea: null` and multi-certification arrays with exact 12-key schema checks on all detail responses, verified lookup independence from invalid catalogue query parameters, added concurrent import + detail/list read consistency coverage, and injected Prisma-specific infrastructure errors (`P1001`, `PrismaClientInitializationError`) to ensure database failures never masquerade as 404s.
+- **Playwright E2E hardened (`tests/e2e/product-details.spec.ts`, `scripts/run-browser-tests.mjs`):** Added `pageerror` listeners for uncaught exceptions/unhandled rejections; replaced unnecessary `page.route` stubs with real PostgreSQL records (`P-001`..`P-004`, `P-121` absent discontinued, `P-122` unnamed all-null absent); added whole-row anchor geometry, heading focus placement, deep-link logo rendering, no-horizontal-overflow, and exact 6-count `"Not provided"` assertions; verified both `Back to catalogue` and Browser Back (`page.goBack()`) after scrolling multiple batches reset `window.scrollY` to `0` and batch count to one batch; and verified clipboard failure feedback without false copy-success claims plus hidden native `Share` when `navigator.share` is unsupported.
+- **Post-review baseline (unimplemented application):** API unit tests pass (69/69); Frontend Jest runs 57 tests (29 pass, 28 fail on unimplemented v0.2.0 routes/links and unimplemented catalogue query normalization for oversized search, repeated scalars, and whitespace-only application areas); PostgreSQL integration runs 74 tests across 3 suites (58 pass, 16 fail in `catalogue-browsing.integration-spec.ts` with zero vacuous passes on detail routes); existing 13 catalogue Playwright tests pass (13.6 s), and all 21 product-details Playwright tests fail at the expected missing routes/controls.

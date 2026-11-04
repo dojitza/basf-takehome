@@ -121,15 +121,19 @@ try {
   try {
     await fixture.connect();
     for (let index = 1; index <= 120; index++) {
+      const id = `00000000-0000-4000-8000-${String(index).padStart(12, '0')}`;
       const sku = `P-${String(index).padStart(3, '0')}`;
       await fixture.query(
-        'INSERT INTO "Product" (id, sku, name, "applicationArea", certifications, status, "presentInLatestImport", "createdAt", "updatedAt", "lastImportedAt") VALUES ($1, $2, $3, $4, $5, $6::"ProductStatus", true, NOW(), NOW(), NOW())',
+        'INSERT INTO "Product" (id, sku, name, "chemicalName", function, "applicationArea", region, certifications, status, "launchYear", description, "presentInLatestImport", "createdAt", "updatedAt", "lastImportedAt") VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::"ProductStatus", $10, $11, true, NOW(), NOW(), NOW())',
         [
-          randomUUID(),
+          id,
           sku,
           `Fixture Product ${String(index).padStart(3, '0')}`,
+          index === 1 ? 'Acrylic dispersion' : null,
+          index === 1 ? 'Film-forming binder' : null,
           index % 2 ? 'Coatings' : 'Food',
-          [],
+          index === 1 ? 'Europe' : null,
+          index === 1 ? ['ISO 9001', 'EcoCert'] : [],
           index === 4
             ? 'UNKNOWN'
             : index % 3 === 0
@@ -137,18 +141,35 @@ try {
               : index % 3 === 1
                 ? 'ACTIVE'
                 : 'PHASE_OUT',
+          index === 1 ? 2021 : null,
+          index === 1
+            ? 'Aqueous acrylic dispersion for industrial coatings.'
+            : index <= 4
+              ? `Fixture description for ${sku}.`
+              : null,
         ],
       );
     }
     await fixture.query(
       'INSERT INTO "Product" (id, sku, name, "applicationArea", certifications, status, "presentInLatestImport", "createdAt", "updatedAt", "lastImportedAt") VALUES ($1, $2, $3, $4, $5, $6::"ProductStatus", false, NOW(), NOW(), NOW())',
       [
-        randomUUID(),
+        '00000000-0000-4000-8000-000000000121',
         'P-121',
         'Fixture Product 121 Absent',
         'Food',
         [],
         'DISCONTINUED',
+      ],
+    );
+    await fixture.query(
+      'INSERT INTO "Product" (id, sku, name, "applicationArea", certifications, status, "presentInLatestImport", "createdAt", "updatedAt", "lastImportedAt") VALUES ($1, $2, $3, $4, $5, $6::"ProductStatus", false, NOW(), NOW(), NOW())',
+      [
+        '00000000-0000-4000-8000-000000000122',
+        'P-122',
+        null,
+        null,
+        [],
+        'ACTIVE',
       ],
     );
   } finally {

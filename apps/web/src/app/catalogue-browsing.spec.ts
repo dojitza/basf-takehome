@@ -13,15 +13,22 @@ import { appConfig } from './app.config';
 // Provisional wire contract; assertions describe behavior rather than component structure.
 const sample = [
   {
+    id: '00000000-0000-4000-8000-000000000001',
     sku: 'P-001',
     name: 'Alpha',
     status: 'ACTIVE',
     applicationArea: 'Coatings',
   },
-  { sku: 'P-002', name: null, status: 'DISCONTINUED', applicationArea: 'Food' },
+  {
+    id: '00000000-0000-4000-8000-000000000002',
+    sku: 'P-002',
+    name: null,
+    status: 'DISCONTINUED',
+    applicationArea: 'Food',
+  },
 ];
 const result = (
-  items = sample,
+  items: Record<string, unknown>[] = sample,
   nextOffset: number | null = null,
   total = nextOffset === null ? items.length : nextOffset + 1,
 ) => ({
@@ -709,7 +716,7 @@ describe('catalogue browsing', () => {
     },
   );
 
-  it('does not show invented application navigation or dead product links', async () => {
+  it('does not show invented application navigation and links each product row to its detail route', async () => {
     await render();
     request().flush(result());
     await update();
@@ -721,7 +728,14 @@ describe('catalogue browsing', () => {
         ),
       ),
     ).toBe(false);
-    expect(root().querySelectorAll('.products a')).toHaveLength(0);
+    const productLinks = [
+      ...root().querySelectorAll<HTMLAnchorElement>('.products a'),
+    ];
+    expect(productLinks).toHaveLength(sample.length);
+    expect(productLinks.map((link) => link.getAttribute('href'))).toEqual([
+      `/products/${sample[0].id}`,
+      `/products/${sample[1].id}`,
+    ]);
   });
 
   it('renders source text as text rather than executable markup', async () => {

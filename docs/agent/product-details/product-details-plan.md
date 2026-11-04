@@ -1,6 +1,6 @@
 # Product details, sharing and navigation — v0.2.0
 
-Status: phase 1 behavior reviewed by the human; phase 2 architecture accepted for proceeding; phase 3 test batch written and phase 4 adversarial test review completed; phase 5 implementation completed and verified green; phase 6 adversarial review of implementation completed; phase 7 implementation findings addressed and verified green. v0.2.0 is a target, not a released or accepted version.
+Status: all 11 phases of the v0.2.0 product details, sharing, and navigation slice are completed, human-reviewed, and verified green across unit, PostgreSQL integration, and Playwright E2E suites.
 
 ## Delivery checklist
 
@@ -13,8 +13,8 @@ Status: phase 1 behavior reviewed by the human; phase 2 architecture accepted fo
 - [x] 7. Address implementation review findings.
 - [x] 8. Human behavioral review and click-through.
 - [x] 9. Address human review in a loop until the human accepts the behavior.
-- [ ] 10. Final adversarial review for gaps after human review.
-- [ ] 11. Final implementation addressing that review, with appropriate verification.
+- [x] 10. Final adversarial review for gaps after human review.
+- [x] 11. Final implementation addressing that review, with appropriate verification.
 
 Review criteria: [future code review criteria](../code-review.md). The review stages above apply to this slice; the previously discussed broad five-pass refactoring exercise remains deferred. Reviewer assignment and any delegation are not selected here.
 
@@ -248,3 +248,40 @@ The human reviewed the implementation on desktop and mobile browsers, requested 
 - `npm run check`: 69 API unit tests, 58 frontend Jest tests, ESLint, Prettier, and Angular/NestJS builds pass.
 - `npm run test:integration`: 74 PostgreSQL integration tests pass.
 - `npm run test:e2e`: 34 Playwright E2E tests pass across desktop and mobile.
+
+### Phase 10: final adversarial review for gaps after human review
+
+Reviewed the post-Phase-8/9 codebase across backend, frontend, tests, and documentation against this plan and [future code review criteria](../code-review.md):
+
+1. **Desktop search `mousedown` -> `blur` race swallowing product row clicks and committing drafts before toolbar share/copy clicks (`apps/web/src/app/catalogue/catalogue.ts`, `apps/web/src/app/catalogue/catalogue.html`):**
+   - *Gap:* When `#desktop-search` had focus with an uncommitted draft, `mousedown` on `<a class="product-link">` or `"Share results"` / `"Copy link to results"` fired `blur` on `#desktop-search` before `mouseup`/`click`. `scheduleSearchCommit()` ran on the microtask queue during `mousedown`, executing `commitSearch()` -> `refresh()` -> `this.products = []`, which removed `<a class="product-link">` from the DOM before `click` could fire and committed the uncommitted draft before `share()`/`copyLink()` read `this.criteria`.
+2. **No-op search blur and no-op filter/sort apply resetting active copy/share feedback (`apps/web/src/app/catalogue/catalogue.ts`):**
+   - *Gap:* Focusing and blurring `#desktop-search` without changing the query (or clicking `Apply` in the filter/sort panel without changing selections) unconditionally called `this.shareController.reset()` and `this.navigate()`, wiping out an active `"Link copied to clipboard."` banner or manual-copy fallback.
+3. **Focus loss on dismissing copy success banner or manual-copy fallback (`apps/web/src/app/catalogue/catalogue.ts`, `apps/web/src/app/product-details/product-details.ts`):**
+   - *Gap:* Clicking `"Dismiss notification"` (`✕`) on `.status-banner.success` or `"Dismiss manual copy notice"` / `"Dismiss"` on `.share-fallback` destroyed the button without returning focus to the `"Copy link"` / `"Copy link to results"` trigger, dropping keyboard focus to `document.body`.
+4. **Missing `Back to catalogue` link during detail `loading` state and vertical misalignment of `.recovery-link` inside `.error-actions` (`apps/web/src/app/product-details/product-details.html`, `apps/web/src/app/product-details/product-details.scss`):**
+   - *Gap:* Wrapping `<nav class="detail-nav">` in `@if (product)` hid `Back to catalogue` while a detail request was still in flight (`loading === true`), unlike `references/loading.png`. Inside `.error-actions`, `.recovery-link` inherited `margin-top: 1rem` beside the `margin-top: 0` `Retry` button.
+5. **Catalogue heading focus outline, transient history state cleanup, and `applicationArea` fallback URL normalization (`apps/web/src/app/catalogue/catalogue.scss`, `apps/web/src/app/catalogue/catalogue.ts`):**
+   - *Gap:* `catalogue.scss` lacked `outline: none` on `h1` (unlike `product-details.scss`); `fromDetail` in `location.getState()` was not removed via `replaceState` when `warning` was false; `fromDetailNav` only matched `/products` instead of any prior SPA route; and invalid `applicationArea` fallback used `queryParamsHandling: 'merge'` without `state: { warning: true }`.
+6. **Duplicated `.status-banner` / `.share-fallback` / `.p-tag-warn` styles and outdated feature status in root documentation (`apps/web/src/app/catalogue/catalogue.scss`, `apps/web/src/app/product-details/product-details.scss`, `README.md`, `DECISIONS.md`, `TODO.md`, `docs/agent/checkpoint.md`):**
+   - *Gap:* ~60 lines of banner, fallback, and tag styles were duplicated across both component stylesheets, and root `README.md`, `DECISIONS.md`, `TODO.md`, and `docs/agent/checkpoint.md` still stated that product details were unimplemented.
+
+### Phase 11: final implementation addressing review findings
+
+Implemented fixes for all 6 Phase 10 findings and expanded automated verification:
+
+1. **Suppressed desktop search blur commit on `mousedown` for product links and share/copy buttons (`apps/web/src/app/catalogue/catalogue.ts`, `apps/web/src/app/catalogue/catalogue.html`, `tests/e2e/product-details.spec.ts`):**
+   - Added `suppressNextBlurCommit()` on `(mousedown)` for `.product-link`, `"Share results"`, and `"Copy link to results"` (auto-clearing on the next microtask if `blur` did not fire), and updated the Playwright draft-search share test to use a real mouse `.click()`.
+2. **Guarded no-op search commits, panel applies, and query emissions (`apps/web/src/app/catalogue/catalogue.ts`):**
+   - `commitSearch()`, `applyPanel()`, and `queryParamMap` subscription only reset `shareController` and navigate when committed criteria actually change.
+3. **Restored keyboard focus to `#copyLinkButton` on dismissing copy notices (`apps/web/src/app/catalogue/catalogue.ts`, `apps/web/src/app/product-details/product-details.ts`, `apps/web/src/app/catalogue/catalogue.html`, `apps/web/src/app/product-details/product-details.html`):**
+   - `dismissManualCopy()` and `dismissCopiedMessage()` now return focus to `this.copyLinkButton?.nativeElement.focus()`.
+4. **Preserved `Back to catalogue` during detail loading and aligned `.error-actions .recovery-link` (`apps/web/src/app/product-details/product-details.html`, `apps/web/src/app/product-details/product-details.scss`):**
+   - Rendered `<nav class="detail-nav">` when `@if (loading || product)` while keeping `<div class="detail-actions">` inside `@if (product)` (ensuring exactly one `Back to catalogue` link in every state), and added `.error-actions .recovery-link { margin-top: 0; }`.
+5. **Cleaned transient history state, normalized `applicationArea` fallback URLs, and aligned `h1` focus styling (`apps/web/src/app/catalogue/catalogue.ts`, `apps/web/src/app/catalogue/catalogue.scss`, `apps/web/src/app/product-details/product-details.ts`):**
+   - Added `outline: none` to `h1` in `catalogue.scss`, cleaned both `warning` and `fromDetail` from `location.getState()` via `replaceState`, checked `Boolean(nav?.previousNavigation?.finalUrl)` for return heading focus, used `queryParams: criteriaToQueryParams(this.criteria)` with `state: { warning: true }` on invalid `applicationArea` fallback, and used `this.product?.id || this.id` in `ProductDetailsComponent.getAbsoluteUrl()`.
+6. **Consolidated shared styles and synchronized documentation (`apps/web/src/app/_shared.scss`, `README.md`, `DECISIONS.md`, `TODO.md`, `docs/agent/checkpoint.md`):**
+   - Extracted `.status-banner`, `.share-fallback`, and `.p-tag-warn` into `apps/web/src/app/_shared.scss` (`@use '../shared'` in both components) and updated root and agent documentation to reflect the completed v0.2.0 slice.
+7. **Verification:**
+   - Added unit coverage in `apps/web/src/app/product-details.spec.ts` for focus restoration on dismissing copy notices, `Back to catalogue` visibility during `loading`, `<h1>Unable to load product</h1>` focus on 503 and `<h1>Products</h1>` focus on return, `mousedown` + `click` on product links with an uncommitted desktop search draft, and preserving copy feedback on unchanged search blur.
+   - `npm run check` (69 API unit tests, 60 frontend Jest tests, ESLint, Prettier, NestJS & Angular production builds), `npm run test:integration` (74 PostgreSQL integration tests), and `npm run test:e2e` (34 Playwright E2E browser tests across desktop and mobile) all pass green.

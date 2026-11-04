@@ -410,3 +410,36 @@ The human said the generated designs looked good and asked to bank them and make
 - Human direction: proceed with phase 6, adversarial review of implementation.
 - Agent findings and action: reviewed the phase 5 commits (`edd8c62` and `59b2b59`) across backend and frontend against `docs/agent/product-details/product-details-plan.md`, the visual reference boards in `docs/agent/product-details/references/`, and `docs/agent/code-review.md`. Identified 6 concrete defects (missing heading and focus placement on detail service-error states and catalogue return; invalid-criteria warning state leak via `history.state` and unrendered `hasWarning` on detail views; stale clipboard/manual-link feedback across criteria changes and unguarded async clipboard completion; `Share` and `Copy link` rendered on loading/404/503 detail states; mobile catalogue toolbar crowding with up to 5 equal-width buttons on one line and narrow-viewport `.product-properties` grid sizing; and wildcard route `**` silently redirecting unknown paths to `/`) and 3 maintainability/duplication items (duplicated share/clipboard logic across `CatalogueComponent` and `ProductDetailsComponent`, split availability helpers between `criteria.ts` and `product-details.ts`, and redundant `initialNavigation()` / `@for` tracking key).
 - Result: documented all findings with file locations, impact, and smallest useful fixes in `docs/agent/product-details/product-details-plan.md`, `docs/agent/dev.log.md`, and `docs/agent/checkpoint.md`. No application code was modified, and no sub-agents were used.
+
+## 2026-11-04 — Phase 7 address implementation review findings
+
+- Human direction: "Proceed with phase 7".
+- Agent action: implemented fixes for all 9 findings identified in Phase 6:
+  - Extracted reusable `ShareController` (`apps/web/src/app/sharing.ts`) with generation counter, destroy guard, and state reset, used by both `CatalogueComponent` and `ProductDetailsComponent`.
+  - Added `<h1 #heading tabindex="-1">Unable to load product</h1>` and heading focus management on service-error states in `ProductDetailsComponent`; added `#heading tabindex="-1"` to `CatalogueComponent`'s `<h1>Products</h1>` and focused it upon return from product details.
+  - Rendered invalid-criteria warning on `ProductDetailsComponent` when `hasWarning` is true; cleared transient `locationState.warning` on initial read in `CatalogueComponent` via `location.replaceState` to prevent sticky warning leaks across subsequent valid interactions.
+  - Reset clipboard/share state on criteria commits and `queryParamMap` updates across both components.
+  - Guarded `.detail-nav` with `@if (product)` so sharing buttons only appear on loaded products; added recovery `Back to catalogue` links to both 404 and 503 views.
+  - Grouped mobile catalogue toolbar actions into `.toolbar-actions` wrapping cleanly onto a secondary row below 600px; changed `.product-properties` grid to `minmax(min(100%, 18rem), 1fr)`.
+  - Routed unknown paths (`**`) to `ProductDetailsComponent` to display 404 Not Found preserving carried criteria rather than silently redirecting to `/`.
+  - Consolidated availability helpers (`availabilityExplanation`, `isUnavailable`) in `apps/web/src/app/criteria.ts`.
+  - Added `takeUntilDestroyed(this.destroyRef)` to `App` router events subscription, and tracked catalogue items by `product.id`.
+- Concrete agent correction during verification: initial placement of a recovery `Back to catalogue` link inside the 404 and 503 views alongside the top `.detail-nav` back link resulted in duplicate links with the same accessible name, causing Playwright strict mode violations. Resolved by conditionally rendering `.detail-nav` only when `product` is loaded, perfectly matching the visual reference boards where error and not-found cards provide their own recovery action.
+- Verification: `npm run check` passed lint, Prettier, all 126 unit tests (69 API + 57 Web), and production builds; `npm run test:integration` passed all 74 PostgreSQL tests; `npm run test:e2e` passed all 34 browser tests across desktop and mobile viewports. No sub-agents used; no git commit made.
+
+## 2026-11-04 — Phase 8 human review and click-through corrections
+
+- Human steering and findings:
+  1. No way to dismiss the manual copy fallback notice and text field when clipboard access fails.
+  2. Inquired how native share support is determined and why "Share" was absent in their mobile browser.
+  3. Directed that catalogue buttons should say "Share results" and "Copy link to results" (while on the product page "Share" and "Copy link" remain appropriate).
+- Agent action:
+  - Added dismiss controls (`dismissManualCopy()`, `ShareController.dismissFallback()`) with both an accessible close button in the notice header and a clear `Dismiss` button next to the manual link textbox across both `CatalogueComponent` and `ProductDetailsComponent`.
+  - Updated catalogue toolbar button labels to "Share results" and "Copy link to results", leaving product detail buttons as "Share" and "Copy link".
+  - Explained that `canShare` checks `typeof navigator !== 'undefined' && typeof navigator.share === 'function'`, and that the Web Share API is restricted by browsers to Secure Contexts (`window.isSecureContext`), meaning mobile browsers (iOS Safari, Android Chrome) automatically remove `navigator.share` when accessing the application over non-localhost HTTP (e.g. over local Wi-Fi IP or plain HTTP).
+  - Updated unit and Playwright E2E tests to assert dismissability of the manual copy fallback and the updated catalogue button labels.
+  - Added `npm run dev:ssl` script to root and web workspaces (`ng serve --proxy-config proxy.conf.json --ssl --host 0.0.0.0 --allowed-hosts`) and documented it in `README.md` to enable testing native mobile sharing on real devices over local Wi-Fi without device-level insecure-origin flags.
+  - Clarified that `navigator.clipboard` is also a Secure Context-only API under the W3C specification (meaning browsers remove `navigator.clipboard` over plain HTTP, which triggered the manual copy fallback on mobile). Confirmed that running via `npm run dev:ssl` establishes a Secure Context where writing to the clipboard works without prompt and native sharing is active.
+  - Added dismiss button (`✕` / `aria-label="Dismiss notification"`) and `dismissCopiedMessage()` (`ShareController.dismissSuccess()`) to the success feedback banner (`.status-banner.success`) on both `CatalogueComponent` and `ProductDetailsComponent`.
+  - Added unit test coverage in `apps/web/src/app/product-details.spec.ts` and E2E browser verification in `tests/e2e/product-details.spec.ts` asserting that clicking the dismiss button removes the success banner.
+- Verification: `npm run check`, `npm run test:integration`, and `npm run test:e2e` all pass green (127 unit tests, 74 integration tests, 34 E2E browser tests). No sub-agents used; no git commit made.

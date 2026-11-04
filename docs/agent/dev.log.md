@@ -311,3 +311,48 @@ Reviewed the phase 5 implementation (`edd8c62` and `59b2b59`) across backend and
   9. Redundant `this.router.initialNavigation()` in `App.constructor()`, uncleaned `router.events` subscription in `App`, and `@for (...; track product.sku)` instead of `track product.id` in `catalogue.html`.
 
 Documentation-only review phase; no application code modified. Phase 7 (address implementation review findings) is next.
+
+## 2026-11-04 — Phase 7 address implementation review findings
+
+Addressed all 9 concrete findings from Phase 6 across frontend code and templates:
+
+- **Focus management on service errors and catalogue return:**
+  - Added `<h1 #heading tabindex="-1">Unable to load product</h1>` in `ProductDetailsComponent` error block and set `this.shouldFocusHeading = true` on non-404 error responses.
+  - Added `#heading tabindex="-1"` to `CatalogueComponent`'s `<h1>Products</h1>` and focused it upon return from product details (via `state.fromDetail` or router navigation).
+- **Warning state leak prevention:**
+  - Added invalid-criteria warning banner to `ProductDetailsComponent` when `hasWarning` is true.
+  - Consumed transient `locationState.warning` on initial read in `CatalogueComponent` and cleared it via `location.replaceState` so that invalid-criteria warnings do not stick across subsequent valid user interactions.
+  - Carried `warning: true` in `backState` only when `hasWarning` is true.
+- **Share & clipboard feedback hygiene:**
+  - Extracted `ShareController` (`apps/web/src/app/sharing.ts`) managing native share, clipboard async calls, generation counters, and component lifecycle guards.
+  - Reset `copiedMessage`, `copyFailed`, and `manualLink` on criteria commits and `queryParamMap` updates across both catalogue and detail components.
+- **Sharing controls in loading/error states & recovery links:**
+  - Guarded `.detail-nav` with `@if (product)` so sharing controls only appear on loaded products.
+  - Rendered recovery `Back to catalogue` link in both 404 Not Found and 503/error views.
+- **Mobile toolbar crowding and grid minimums:**
+  - Grouped `Share` and `Copy link` into `.toolbar-actions` wrapping cleanly onto a secondary row on mobile viewports (`max-width: 600px`), keeping `Search`, `Filters`, and `Sort` equal width on the top row.
+  - Updated `ProductDetailsComponent` `.product-properties` grid to `minmax(min(100%, 18rem), 1fr)`.
+- **Wildcard route unknown-path handling:**
+  - Pointed `{ path: '**', component: ProductDetailsComponent }` so invalid or multi-segment paths render 404 Not Found while preserving valid carried criteria instead of silently redirecting to root.
+  - Guarded `loadProduct()` in `ProductDetailsComponent` so an empty id immediately sets `notFound = true` without querying `/api/products/`.
+- **Duplicated share logic extraction:**
+  - Reused `ShareController` in both `CatalogueComponent` and `ProductDetailsComponent`.
+- **Availability presentation helpers:**
+  - Consolidated `availabilityExplanation()` and `isUnavailable()` in `apps/web/src/app/criteria.ts` alongside `statusLabel()`, `displayStatus()`, and `statusSeverity()`.
+- **Router subscription cleanup and catalogue track key:**
+  - Added `takeUntilDestroyed(this.destroyRef)` to `App` router event subscription.
+  - Tracked catalogue items by `product.id` rather than `product.sku`.
+
+Verification evidence:
+- `npm run check`: 69 API unit tests pass, 57 frontend Jest tests pass, lint and Prettier pass, NestJS and Angular production builds pass.
+- `npm run test:integration`: 74 integration tests against PostgreSQL pass.
+- `npm run test:e2e`: 34 Playwright E2E tests pass across desktop (1280px) and mobile (390px). Phase 8 (human behavioral review and click-through) is next. No git commit made.
+
+## 2026-11-04 — Phase 8 human review and click-through corrections
+
+Addressed human review feedback from testing:
+- **Dismiss manual copy notice:** Added dismiss button and header close icon to `.share-fallback` in both `CatalogueComponent` and `ProductDetailsComponent`. Wired to `dismissManualCopy()` / `ShareController.dismissFallback()` to cleanly dismiss the notice and text field.
+- **Button labels for catalogue vs product:** Updated catalogue toolbar buttons to "Share results" and "Copy link to results". Retained "Share" and "Copy link" on `ProductDetailsComponent`.
+- **Dismiss success notification:** Added dismiss button (`✕` / `aria-label="Dismiss notification"`) to the `.status-banner.success` element on both `CatalogueComponent` and `ProductDetailsComponent`, wired via `dismissCopiedMessage()` to `ShareController.dismissSuccess()`.
+- **Verified tests:** Updated unit and Playwright tests to cover dismissal of the manual copy fallback, dismissal of the success banner, and the updated button labels. All 69 API unit, 58 frontend Jest, 74 PostgreSQL integration, and 34 Playwright E2E tests pass.
+- **Local HTTPS script:** Added `npm run dev:ssl` to root and web workspaces (`--ssl --host 0.0.0.0 --allowed-hosts`) and documented its purpose for mobile Web Share testing in root `README.md`.

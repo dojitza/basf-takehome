@@ -1,0 +1,168 @@
+<main class="product-details-page">
+  <nav class="detail-nav" aria-label="Breadcrumb">
+    <a
+      class="back-link"
+      [routerLink]="['/']"
+      [queryParams]="criteriaQueryParams"
+      [state]="{ warning: hasWarning }"
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+      >
+        <line x1="19" y1="12" x2="5" y2="12" />
+        <polyline points="12 19 5 12 12 5" />
+      </svg>
+      <span>Back to catalogue</span>
+    </a>
+
+    <div class="detail-actions">
+      @if (canShare) {
+        <button
+          pButton
+          severity="secondary"
+          type="button"
+          class="detail-button"
+          (click)="share()"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="18" cy="5" r="3" />
+            <circle cx="6" cy="12" r="3" />
+            <circle cx="18" cy="19" r="3" />
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+          </svg>
+          <span>Share</span>
+        </button>
+      }
+      <button
+        pButton
+        severity="secondary"
+        type="button"
+        class="detail-button"
+        (click)="copyLink()"
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+        <span>Copy link</span>
+      </button>
+    </div>
+  </nav>
+
+  @if (copiedMessage) {
+    <div role="status" class="status-banner success">
+      Link copied to clipboard.
+    </div>
+  }
+  @if (copyFailed) {
+    <div class="share-fallback">
+      <p class="share-feedback error">
+        Unable to copy link to clipboard. Please copy the link manually:
+      </p>
+      <input
+        pInputText
+        type="text"
+        readonly
+        [value]="manualLink"
+        aria-label="Product link"
+        (focus)="$any($event.target).select()"
+      />
+    </div>
+  }
+
+  @if (loading) {
+    <div role="status" aria-busy="true" class="status-message">
+      Loading product details…
+    </div>
+  }
+
+  @if (!loading && notFound) {
+    <div class="product-not-found">
+      <h1 #heading tabindex="-1">Product not found</h1>
+      <p>The requested product could not be found.</p>
+    </div>
+  }
+
+  @if (!loading && error) {
+    <div role="alert" class="error">
+      Unable to load product details.
+      <button pButton type="button" (click)="retry()">Retry</button>
+    </div>
+  }
+
+  @if (!loading && !notFound && !error && product) {
+    <article class="product-content">
+      <header class="product-header">
+        <div class="title-row">
+          <h1 #heading tabindex="-1">{{ product.name || product.sku }}</h1>
+          <p-tag [value]="displayStatus" [severity]="tagSeverity" />
+        </div>
+        <div class="sku-row">
+          <span class="sku-label">SKU:</span>
+          <span class="sku">{{ product.sku }}</span>
+        </div>
+        @if (availabilityExplanation) {
+          <p class="availability-explanation">{{ availabilityExplanation }}</p>
+        }
+      </header>
+
+      <dl class="product-properties">
+        <div class="property">
+          <dt>Chemical name</dt>
+          <dd>{{ product.chemicalName || 'Not provided' }}</dd>
+        </div>
+        <div class="property">
+          <dt>Description</dt>
+          <dd>{{ product.description || 'Not provided' }}</dd>
+        </div>
+        <div class="property">
+          <dt>Function</dt>
+          <dd>{{ product.function || 'Not provided' }}</dd>
+        </div>
+        <div class="property">
+          <dt>Application area</dt>
+          <dd>{{ product.applicationArea || 'Not provided' }}</dd>
+        </div>
+        <div class="property">
+          <dt>Region</dt>
+          <dd>{{ product.region || 'Not provided' }}</dd>
+        </div>
+        <div class="property">
+          <dt>Launch year</dt>
+          <dd>{{ product.launchYear ?? 'Not provided' }}</dd>
+        </div>
+        <div class="property certifications-property">
+          <dt>Certifications</dt>
+          <dd>
+            @if (product.certifications && product.certifications.length > 0) {
+              <ul class="certifications-list">
+                @for (cert of product.certifications; track cert) {
+                  <li>{{ cert }}</li>
+                }
+              </ul>
+            } @else {
+              None listed
+            }
+          </dd>
+        </div>
+      </dl>
+    </article>
+  }
+</main>

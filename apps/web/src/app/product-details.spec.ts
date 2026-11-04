@@ -71,6 +71,7 @@ const originalShare = navigator.share;
 const originalClipboard = navigator.clipboard;
 
 async function render(initialUrl = '/') {
+  TestBed.resetTestingModule();
   await TestBed.configureTestingModule({
     imports: [App],
     providers: [

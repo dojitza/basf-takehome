@@ -8,6 +8,8 @@ it('renders the product catalogue shell', async () => {
   }).compileComponents();
   const fixture = TestBed.createComponent(App);
   fixture.detectChanges();
+  await fixture.whenStable();
+  fixture.detectChanges();
   const root = fixture.nativeElement as HTMLElement;
   expect(root.querySelector('header')?.textContent).toContain('Product Finder');
   expect(root.querySelector('h1')?.textContent).toBe('Products');

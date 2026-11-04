@@ -1,0 +1,162 @@
+:host {
+  display: block;
+}
+.product-details-page {
+  max-width: 76rem;
+  margin: auto;
+  padding: 1.25rem 1rem 3rem;
+  box-sizing: border-box;
+}
+.detail-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: #00549f;
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.4rem 0;
+}
+.back-link:hover {
+  text-decoration: underline;
+}
+.back-link svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  flex: none;
+}
+.detail-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.detail-button svg {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+}
+.status-banner {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  background: #e6f4ea;
+  color: #137333;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+.share-fallback {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.share-feedback.error {
+  color: #c5221f;
+  margin: 0;
+  font-size: 0.875rem;
+}
+.share-fallback input {
+  width: 100%;
+  max-width: 32rem;
+}
+.status-message {
+  min-height: 2rem;
+  color: #555;
+  font-size: 0.95rem;
+}
+.error {
+  padding: 0.8rem;
+  background: #fff3d8;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.product-not-found {
+  padding: 2rem 0;
+}
+.product-not-found h1 {
+  font-size: 1.5rem;
+  margin: 0 0 0.5rem;
+}
+.product-not-found p {
+  color: #555;
+  margin: 0;
+}
+.product-content {
+  background: white;
+}
+.product-header {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+h1 {
+  font-size: 1.5rem;
+  margin: 0;
+  outline: none;
+  overflow-wrap: anywhere;
+}
+.sku-row {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  color: #555;
+  font-size: 0.95rem;
+}
+.sku-label {
+  font-weight: 500;
+}
+.availability-explanation {
+  margin: 0.75rem 0 0;
+  color: #555;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+.product-properties {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: 1.5rem;
+  margin: 0;
+}
+.property {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  overflow-wrap: anywhere;
+}
+.property dt {
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: #555;
+}
+.property dd {
+  margin: 0;
+  font-size: 1rem;
+  color: #222;
+}
+.certifications-list {
+  list-style: disc;
+  padding-left: 1.25rem;
+  margin: 0;
+}
+
+:host ::ng-deep .p-tag-warn {
+  background: #fff3bf;
+  color: #614400;
+}

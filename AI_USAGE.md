@@ -455,3 +455,16 @@ The human said the generated designs looked good and asked to bank them and make
   5. Added `outline: none` to `h1` in `catalogue.scss`, cleaned both `warning` and `fromDetail` from `location.getState()` via `replaceState`, checked `Boolean(nav?.previousNavigation?.finalUrl)` for return heading focus, normalized invalid `applicationArea` fallback URLs with `criteriaToQueryParams(this.criteria)` and `state: { warning: true }`, and used `this.product?.id || this.id` in `ProductDetailsComponent.getAbsoluteUrl()`.
   6. Extracted duplicated `.status-banner`, `.share-fallback`, and `.p-tag-warn` styles into `apps/web/src/app/_shared.scss` and updated root `README.md`, `DECISIONS.md`, `TODO.md`, and agent docs (`docs/agent/checkpoint.md`, `docs/agent/product-details/product-details-plan.md`, `docs/agent/dev.log.md`) to reflect completion of `v0.2.0`.
 - Verification: `npm run check` (69 API unit tests, 60 frontend Jest tests, ESLint, Prettier, NestJS & Angular production builds), `npm run test:integration` (74 PostgreSQL integration tests), and `npm run test:e2e` (34 Playwright E2E browser journeys) all passed green. No sub-agents were used.
+
+## 2026-11-04 — v0.2.0 human documentation
+
+- Human direction: create a v0.2.0 folder in human docs, write the LLM-generated architecture section, leave human notes empty, and provide desktop and mobile screenshots of relevant screens. This explicitly opens the human documentation area for this milestone.
+- Agent action: wrote the architecture review and captured the running application with Playwright at desktop and mobile sizes. Browser interception induced loading, service and clipboard failures, and an unavailable product with missing fields; the document identifies these cases. No sub-agents were used.
+
+## 2026-11-04 — clipboard fallback design direction
+
+- Human correction: the documented clipboard fallback has excessive spacing and a redundant close control. They requested a desktop single row containing the warning, link input and Dismiss; on mobile, remove the close icon and reduce the gap above the input. They requested an ImageGen visualization of that direction.
+- Agent action: generated a design reference for review; implementation remains pending agreement. No sub-agents were used.
+- Human accepted the generated direction and requested implementation and screenshots from the running app. The agent updated both catalogue and product fallback layouts, retained Dismiss as the only close control, and captured both viewports. Browser checks and frontend Jest passed; human review of the implementation is pending.
+- Human follow-up: remove the URL field's width cap after noticing unused space at the end of the desktop fallback. Removed the cap and recaptured both views; browser checks passed at desktop and mobile sizes.
+- Human requested that the new fallback screenshots replace the old ones in the v0.2.0/screenshots folder. Moved the updated product captures over the older fallback images, added the catalogue captures there, and repaired the document's screenshot links.

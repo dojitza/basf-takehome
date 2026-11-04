@@ -373,3 +373,13 @@ Completed Phase 10 (final adversarial review for gaps after human review) and Ph
   - `npm run check`: 69 API unit tests pass, 60 frontend Jest tests pass (including 2 new tests and expanded focus assertions in `apps/web/src/app/product-details.spec.ts`), ESLint and Prettier pass, NestJS and Angular production builds pass.
   - `npm run test:integration`: 74 PostgreSQL integration tests pass across 3 suites.
   - `npm run test:e2e`: 34 Playwright E2E browser journeys pass across desktop and mobile viewports.
+
+## 2026-11-04 — v0.2.0 human-facing architecture and screenshots
+
+Created `docs/human/v0.2.0/v0.2.0.md` with empty human sections and an LLM-generated architectural review. Captured 14 full-page Playwright screenshots at 1280×720 and 390×844 from the local development application. Loading, service error, clipboard failure and unavailable/missing-field states were induced in the browser; the document identifies the mocked response. Confirmed capture completed and visually inspected the mobile product detail. No application code changed and no test suite was run for this documentation-only work.
+
+## 2026-11-04 — Clipboard fallback layout
+
+Updated shared fallback styles and both catalogue and product templates to put the warning, link and Dismiss on one desktop row and stack the warning closely above the controls on mobile; removed the extra close button. Playwright checks against the running app verified both views at 1280 and 390 pixels, single-control dismissal and no horizontal overflow; screenshots are in `docs/human/v0.2.0/*-copy-fallback-updated.png`. Frontend Jest: 60 tests passed. Human review of the revised implementation is pending.
+- Follow-up: removed the fallback URL input's desktop width cap so it fills the available row; repeated the desktop/mobile browser checks for catalogue and product and refreshed the screenshots.
+- Moved updated clipboard fallback captures into `docs/human/v0.2.0/screenshots/`, replacing the older product captures and adding catalogue captures. Updated and checked all screenshot links in the milestone document.

@@ -146,22 +146,9 @@
   }
   @if (copyFailed) {
     <div class="share-fallback">
-      <div class="share-fallback-header">
-        <p class="share-feedback error">
-          Unable to copy link to clipboard. Please copy the link manually:
-        </p>
-        <button
-          pButton
-          severity="secondary"
-          [text]="true"
-          type="button"
-          class="share-fallback-dismiss"
-          aria-label="Dismiss manual copy notice"
-          (click)="dismissManualCopy()"
-        >
-          <span aria-hidden="true">✕</span>
-        </button>
-      </div>
+      <p class="share-feedback">
+        Unable to copy link to clipboard. Please copy the link manually:
+      </p>
       <div class="share-fallback-row">
         <input
           pInputText

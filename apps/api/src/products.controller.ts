@@ -1,8 +1,17 @@
-import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  Query,
+} from '@nestjs/common';
 import { Prisma, ProductStatus } from '@prisma/client';
 import { DatabaseService } from './database.service.js';
 
 const statuses = ['ACTIVE', 'PHASE_OUT', 'DISCONTINUED', 'UNAVAILABLE'];
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const array = (value: unknown): string[] => {
   if (value === undefined) return [];
   if (typeof value === 'string') return [value];
@@ -86,6 +95,7 @@ export class ProductsController {
     const [items, total, areaRows] = await Promise.all([
       this.db.$queryRaw<
         {
+          id: string;
           sku: string;
           name: string | null;
           status: ProductStatus;
@@ -95,7 +105,7 @@ export class ProductsController {
           function: string | null;
         }[]
       >(Prisma.sql`
-        SELECT sku, name, status, "presentInLatestImport", "applicationArea", "chemicalName", function
+        SELECT id, sku, name, status, "presentInLatestImport", "applicationArea", "chemicalName", function
         FROM ${Prisma.raw(`"${(this.db.schema ?? 'public').replace(/"/g, '""')}"."Product"`)}
         WHERE ${
           selected.length
@@ -130,5 +140,33 @@ export class ProductsController {
         .map((row) => row.applicationArea)
         .filter(Boolean),
     };
+  }
+
+  @Get(':id')
+  async detail(@Param('id') id: string) {
+    if (!UUID_PATTERN.test(id)) {
+      throw new NotFoundException('Product not found');
+    }
+    const product = await this.db.product.findUnique({
+      where: { id: id.toLowerCase() },
+      select: {
+        id: true,
+        sku: true,
+        name: true,
+        chemicalName: true,
+        function: true,
+        applicationArea: true,
+        region: true,
+        certifications: true,
+        status: true,
+        launchYear: true,
+        description: true,
+        presentInLatestImport: true,
+      },
+    });
+    if (!product) {
+      throw new NotFoundException('Product not found');
+    }
+    return product;
   }
 }

@@ -810,7 +810,47 @@ describe('product details, sharing and navigation (v0.2.0)', () => {
         expect(manualUrl.searchParams.get('search')).toBe('Alpha');
         expect(manualUrl.searchParams.getAll('status')).toEqual(['ACTIVE']);
         expect(manualUrl.searchParams.get('sort')).toBe('name-desc');
+
+        const dismissBtn = button(/dismiss/i);
+        expect(dismissBtn).toBeDefined();
+        dismissBtn.click();
+        await update();
+        expect(
+          root().querySelector('input[aria-label*="link" i], input[readonly]'),
+        ).toBeNull();
       },
     );
+
+    it('copies the link when clipboard.writeText succeeds and allows dismissing the success banner', async () => {
+      let copiedText = '';
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: jest.fn((text: string) => {
+            copiedText = text;
+            return Promise.resolve();
+          }),
+        },
+      });
+
+      await render(
+        `/products/${id1}?search=Alpha&status=ACTIVE&sort=name-desc`,
+      );
+      expectDetailRequest(id1).flush(detailRecord);
+      await update();
+
+      button(/copy link/i).click();
+      await update();
+
+      expect(text()).toMatch(/link copied to clipboard/i);
+      expect(copiedText).toContain(`/products/${id1}`);
+
+      const dismissBtn = button(/dismiss notification/i);
+      expect(dismissBtn).toBeDefined();
+      dismissBtn.click();
+      await update();
+
+      expect(text()).not.toMatch(/link copied to clipboard/i);
+    });
   });
 });

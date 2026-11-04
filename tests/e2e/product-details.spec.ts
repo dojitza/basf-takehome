@@ -202,6 +202,10 @@ test('clipboard failure exposes the applied catalogue link with failure feedback
   const link = page.getByRole('textbox', { name: /link/i });
   await expect(link).toBeVisible();
   await expect(link).toHaveValue(/search=Fixture/);
+  const dismiss = page.getByRole('button', { name: /dismiss/i }).first();
+  await expect(dismiss).toBeVisible();
+  await dismiss.click();
+  await expect(link).toHaveCount(0);
 });
 
 test('detail page explains retained absent products and renders all missing-value placeholders from PostgreSQL', async ({
@@ -236,7 +240,9 @@ test('native sharing is hidden when unsupported and handles cancellation gracefu
   });
   await page.goto('/?search=Fixture');
   await expect(results(page)).toBeVisible();
-  await expect(page.getByRole('button', { name: /^share$/i })).toHaveCount(0);
+  await expect(
+    page.getByRole('button', { name: /^share( results)?$/i }),
+  ).toHaveCount(0);
   await expect(page.getByRole('button', { name: /copy link/i })).toBeVisible();
 
   await page.addInitScript(() => {
@@ -250,7 +256,7 @@ test('native sharing is hidden when unsupported and handles cancellation gracefu
   });
   await page.reload();
   await expect(results(page)).toBeVisible();
-  const share = page.getByRole('button', { name: /^share$/i });
+  const share = page.getByRole('button', { name: /^share( results)?$/i });
   await expect(share).toBeVisible();
   await share.click();
   await expect
@@ -302,9 +308,15 @@ test('copying a catalogue link includes applied filters and sort with success fe
   expect(copied.searchParams.get('sort')).toBe('name-desc');
   expect(copied.searchParams.has('offset')).toBe(false);
   expect(copied.searchParams.has('limit')).toBe(false);
-  await expect(
-    page.getByText(/link copied|copied to clipboard/i),
-  ).toBeVisible();
+  const successBanner = page.getByText(/link copied|copied to clipboard/i);
+  await expect(successBanner).toBeVisible();
+
+  const dismissBtn = page.getByRole('button', {
+    name: /dismiss notification/i,
+  });
+  await expect(dismissBtn).toBeVisible();
+  await dismissBtn.click();
+  await expect(successBanner).toHaveCount(0);
 });
 
 test('direct product from PostgreSQL shows every customer field without metadata or review placeholders and returns to the default catalogue', async ({

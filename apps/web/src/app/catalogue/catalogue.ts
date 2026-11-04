@@ -65,6 +65,7 @@ export class CatalogueComponent implements AfterViewChecked, OnDestroy {
   private shouldFocusHeading = false;
 
   @ViewChild('heading') headingElement?: ElementRef<HTMLElement>;
+  @ViewChild('copyLinkButton') copyLinkButton?: ElementRef<HTMLButtonElement>;
 
   @ViewChild('sentinel') set sentinel(
     value: ElementRef<HTMLElement> | undefined,
@@ -97,6 +98,8 @@ export class CatalogueComponent implements AfterViewChecked, OnDestroy {
   warning = false;
   private loadedKey = '';
   private searchBlurGeneration = 0;
+  private suppressBlurCommit = false;
+  private suppressBlurTimer?: ReturnType<typeof setTimeout>;
 
   get canShare(): boolean {
     return this.shareController.canShare;
@@ -120,12 +123,10 @@ export class CatalogueComponent implements AfterViewChecked, OnDestroy {
 
   constructor() {
     const nav = this.router.getCurrentNavigation();
-    const prevUrl = nav?.previousNavigation?.finalUrl?.toString();
-    const fromDetailNav =
-      prevUrl?.startsWith('/products') || prevUrl?.includes('/products');
+    const fromPriorRoute = Boolean(nav?.previousNavigation?.finalUrl);
     const locationState = this.location.getState() as
       { warning?: boolean; fromDetail?: boolean } | undefined;
-    if (locationState?.fromDetail || fromDetailNav) {
+    if (locationState?.fromDetail || fromPriorRoute) {
       this.shouldFocusHeading = true;
     }
 
@@ -136,15 +137,19 @@ export class CatalogueComponent implements AfterViewChecked, OnDestroy {
           { warning?: boolean; fromDetail?: boolean } | undefined;
         const transientWarning = Boolean(state?.warning);
         this.warning = parsed.hasWarning || transientWarning;
-        if (transientWarning) {
+        if (transientWarning || state?.fromDetail) {
           const path = this.location.path();
           const cleanState = { ...(state || {}) };
           delete cleanState.warning;
+          delete cleanState.fromDetail;
           this.location.replaceState(path, '', cleanState);
         }
+        const prevKey = this.loadedKey;
         this.criteria = parsed.criteria;
         this.searchInput = this.criteria.search;
-        this.shareController.reset();
+        if (this.key() !== prevKey) {
+          this.shareController.reset();
+        }
         this.refreshIfChanged();
         this.changeDetector.markForCheck();
       }),
@@ -161,6 +166,7 @@ export class CatalogueComponent implements AfterViewChecked, OnDestroy {
   ngOnDestroy() {
     this.request?.unsubscribe();
     this.searchBlurGeneration++;
+    if (this.suppressBlurTimer) clearTimeout(this.suppressBlurTimer);
     this.subscriptions.unsubscribe();
     this.shareController.destroy();
     this.observer?.disconnect();
@@ -224,13 +230,9 @@ export class CatalogueComponent implements AfterViewChecked, OnDestroy {
           this.refresh();
           void this.router
             .navigate([], {
-              queryParams: {
-                applicationArea: this.criteria.applicationArea.length
-                  ? this.criteria.applicationArea
-                  : null,
-              },
-              queryParamsHandling: 'merge',
+              queryParams: criteriaToQueryParams(this.criteria),
               replaceUrl: true,
+              state: { warning: true },
             })
             .then(() => {
               this.warning = true;
@@ -267,8 +269,21 @@ export class CatalogueComponent implements AfterViewChecked, OnDestroy {
     this.searchInput = value;
   }
 
+  suppressNextBlurCommit() {
+    this.suppressBlurCommit = true;
+    if (this.suppressBlurTimer) clearTimeout(this.suppressBlurTimer);
+    this.suppressBlurTimer = setTimeout(() => {
+      this.suppressBlurCommit = false;
+    }, 0);
+  }
+
   scheduleSearchCommit() {
     this.searchBlurGeneration++;
+    if (this.suppressBlurCommit) {
+      this.suppressBlurCommit = false;
+      if (this.suppressBlurTimer) clearTimeout(this.suppressBlurTimer);
+      return;
+    }
     const generation = this.searchBlurGeneration;
     void Promise.resolve().then(() => {
       if (generation === this.searchBlurGeneration) this.commitSearch();
@@ -277,14 +292,18 @@ export class CatalogueComponent implements AfterViewChecked, OnDestroy {
 
   commitSearch() {
     this.searchBlurGeneration++;
-    this.criteria = { ...this.criteria, search: this.searchInput.trim() };
+    const nextSearch = this.searchInput.trim();
+    const changed = nextSearch !== this.criteria.search;
+    this.criteria = { ...this.criteria, search: nextSearch };
     this.searchInput = this.criteria.search;
     const wasMobile = this.mobileSearch;
     this.mobileSearch = false;
     if (wasMobile) this.lastTrigger?.focus();
-    this.shareController.reset();
-    this.refreshIfChanged();
-    this.navigate();
+    if (changed) {
+      this.shareController.reset();
+      this.refreshIfChanged();
+      this.navigate();
+    }
   }
 
   openSearch(trigger: HTMLElement) {
@@ -357,11 +376,14 @@ export class CatalogueComponent implements AfterViewChecked, OnDestroy {
   }
 
   applyPanel() {
+    const prevKey = this.key();
     this.criteria = { ...this.draft };
     this.closePanel();
-    this.shareController.reset();
-    this.refreshIfChanged();
-    this.navigate();
+    if (this.key() !== prevKey) {
+      this.shareController.reset();
+      this.refreshIfChanged();
+      this.navigate();
+    }
   }
 
   toggle(group: 'status' | 'applicationArea', value: string, checked: boolean) {
@@ -451,10 +473,12 @@ export class CatalogueComponent implements AfterViewChecked, OnDestroy {
   dismissManualCopy() {
     this.shareController.dismissFallback();
     this.changeDetector.markForCheck();
+    this.copyLinkButton?.nativeElement.focus();
   }
 
   dismissCopiedMessage() {
     this.shareController.dismissSuccess();
     this.changeDetector.markForCheck();
+    this.copyLinkButton?.nativeElement.focus();
   }
 }

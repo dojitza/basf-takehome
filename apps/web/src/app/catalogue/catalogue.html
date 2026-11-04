@@ -86,6 +86,7 @@
           severity="secondary"
           type="button"
           class="toolbar-button"
+          (mousedown)="suppressNextBlurCommit()"
           (click)="share()"
         >
           <svg
@@ -109,6 +110,8 @@
         severity="secondary"
         type="button"
         class="toolbar-button"
+        #copyLinkButton
+        (mousedown)="suppressNextBlurCommit()"
         (click)="copyLink()"
       >
         <svg
@@ -293,6 +296,7 @@
             class="product-link"
             [routerLink]="['/products', product.id]"
             [queryParams]="criteriaQueryParams"
+            (mousedown)="suppressNextBlurCommit()"
           >
             <div class="product-main">
               <strong>{{ product.name || 'Unnamed product' }}</strong

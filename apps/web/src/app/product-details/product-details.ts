@@ -56,6 +56,7 @@ export class ProductDetailsComponent implements AfterViewChecked, OnDestroy {
   private shouldFocusHeading = false;
 
   @ViewChild('heading') headingElement?: ElementRef<HTMLElement>;
+  @ViewChild('copyLinkButton') copyLinkButton?: ElementRef<HTMLButtonElement>;
 
   id = '';
   criteria = initialCriteria();
@@ -196,9 +197,12 @@ export class ProductDetailsComponent implements AfterViewChecked, OnDestroy {
   }
 
   getAbsoluteUrl(): string {
-    const tree = this.router.createUrlTree(['/products', this.id], {
-      queryParams: criteriaToQueryParams(this.criteria),
-    });
+    const tree = this.router.createUrlTree(
+      ['/products', this.product?.id || this.id],
+      {
+        queryParams: criteriaToQueryParams(this.criteria),
+      },
+    );
     const relative = this.router.serializeUrl(tree);
     const origin =
       typeof window !== 'undefined' && window.location?.origin
@@ -223,10 +227,12 @@ export class ProductDetailsComponent implements AfterViewChecked, OnDestroy {
   dismissManualCopy() {
     this.shareController.dismissFallback();
     this.changeDetector.markForCheck();
+    this.copyLinkButton?.nativeElement.focus();
   }
 
   dismissCopiedMessage() {
     this.shareController.dismissSuccess();
     this.changeDetector.markForCheck();
+    this.copyLinkButton?.nativeElement.focus();
   }
 }

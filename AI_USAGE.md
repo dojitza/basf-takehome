@@ -468,3 +468,9 @@ The human said the generated designs looked good and asked to bank them and make
 - Human accepted the generated direction and requested implementation and screenshots from the running app. The agent updated both catalogue and product fallback layouts, retained Dismiss as the only close control, and captured both viewports. Browser checks and frontend Jest passed; human review of the implementation is pending.
 - Human follow-up: remove the URL field's width cap after noticing unused space at the end of the desktop fallback. Removed the cap and recaptured both views; browser checks passed at desktop and mobile sizes.
 - Human requested that the new fallback screenshots replace the old ones in the v0.2.0/screenshots folder. Moved the updated product captures over the older fallback images, added the catalogue captures there, and repaired the document's screenshot links.
+
+## 2026-11-04 — v0.3.0 bootstrapping (product reviews)
+
+- Human direction: prioritize Option A (product reviews) over filter/sort extensions for v0.3.0, collapse the delivery lifecycle from 11 phases down to 8 stages by merging adversarial reviews to directly fix issues and unifying the human taste-test feedback loop, bootstrap this in docs (including `docs/human/v0.3.0/`), and commit to kick off v0.3.0.
+- Agent action: created `docs/human/v0.3.0/v0.3.0.md` and `docs/agent/reviews/reviews-plan.md` with the 8-stage collapsed workflow, updated `TODO.md`, `docs/README.md`, `docs/agent/checkpoint.md`, and `docs/agent/dev.log.md`. No sub-agents were used.
+

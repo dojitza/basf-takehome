@@ -383,3 +383,8 @@ Created `docs/human/v0.2.0/v0.2.0.md` with empty human sections and an LLM-gener
 Updated shared fallback styles and both catalogue and product templates to put the warning, link and Dismiss on one desktop row and stack the warning closely above the controls on mobile; removed the extra close button. Playwright checks against the running app verified both views at 1280 and 390 pixels, single-control dismissal and no horizontal overflow; screenshots are in `docs/human/v0.2.0/*-copy-fallback-updated.png`. Frontend Jest: 60 tests passed. Human review of the revised implementation is pending.
 - Follow-up: removed the fallback URL input's desktop width cap so it fills the available row; repeated the desktop/mobile browser checks for catalogue and product and refreshed the screenshots.
 - Moved updated clipboard fallback captures into `docs/human/v0.2.0/screenshots/`, replacing the older product captures and adding catalogue captures. Updated and checked all screenshot links in the milestone document.
+
+## 2026-11-04 — v0.3.0 bootstrapping (product reviews)
+
+Bootstrapped milestone `v0.3.0` focusing on customer reviews and ratings. Created `docs/human/v0.3.0/v0.3.0.md` with human notes and the agreed 8-stage collapsed delivery workflow, and `docs/agent/reviews/reviews-plan.md`. Updated `TODO.md`, `docs/README.md`, `docs/agent/checkpoint.md`, and `AI_USAGE.md`.
+

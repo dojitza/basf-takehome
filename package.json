@@ -13,6 +13,7 @@
   "scripts": {
     "build": "npm run build --workspaces",
     "dev": "node scripts/ensure-local-config.mjs && docker compose up -d --wait db && concurrently -k -n api,web \"npm run dev -w @product-finder/api\" \"npm run dev -w @product-finder/web\"",
+    "dev:ssl": "node scripts/ensure-local-config.mjs && docker compose up -d --wait db && concurrently -k -n api,web \"npm run dev -w @product-finder/api\" \"npm run dev:ssl -w @product-finder/web\"",
     "test": "npm run test --workspaces",
     "test:integration": "docker compose --profile test up -d --wait test-db && DATABASE_URL=postgresql://product_finder:product_finder@localhost:5433/product_finder_test npm run test:integration -w @product-finder/api",
     "lint": "eslint .",

@@ -64,6 +64,18 @@ npm run dev:tailnet
 
 This starts the same PostgreSQL/API stack and binds the Angular development server to the machine’s Tailscale IPv4 address on port 4200. Open `http://<machine-tailnet-name>:4200` from a device on the tailnet. Tailscale must be running on the development machine. This opt-in mode accepts any HTTP Host header on that tailnet interface so Angular can serve the tailnet hostname; use it only on a trusted tailnet. The standard `npm run dev` keeps the web server bound to localhost.
 
+## Local development with HTTPS (Mobile Web Share testing)
+
+The Web Share API (`navigator.share`) requires a [Secure Context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts). While desktop browsers treat `http://localhost:4200` as secure, modern mobile browsers (iOS Safari, Android Chrome) disable `navigator.share` on non-localhost HTTP connections (such as connecting from a physical smartphone to your computer's local network IP).
+
+To test native mobile sharing on a physical device over the local network:
+
+```sh
+npm run dev:ssl
+```
+
+This starts the development stack with Angular served over HTTPS on all network interfaces (`--ssl --host 0.0.0.0 --allowed-hosts`). Open `https://<your-computer-ip>:4200` on your mobile phone, accept the browser's self-signed development certificate warning once, and native sharing ("Share results" / "Share") will be active.
+
 ## Build and verify
 
 ```sh

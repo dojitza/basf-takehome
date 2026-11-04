@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "dev": "ng serve --proxy-config proxy.conf.json",
+    "dev:ssl": "ng serve --proxy-config proxy.conf.json --ssl --host 0.0.0.0 --allowed-hosts",
     "build": "ng build",
     "test": "jest --runInBand"
   },

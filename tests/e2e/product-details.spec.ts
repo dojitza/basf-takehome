@@ -451,10 +451,7 @@ test('shared catalogue uses applied search instead of an uncommitted input or un
 
   const field = page.getByRole('searchbox', { name: /search|product|sku/i });
   await field.fill('uncommitted draft');
-  // Open the share action without committing blur: keyboard focus can also leave the input.
-  await page
-    .getByRole('button', { name: /copy link/i })
-    .evaluate((button: HTMLButtonElement) => button.click());
+  await page.getByRole('button', { name: /copy link/i }).click();
   await expect
     .poll(() =>
       page.evaluate(
@@ -469,6 +466,17 @@ test('shared catalogue uses applied search instead of an uncommitted input or un
   );
   expect(shared.searchParams.get('search')).toBe('Fixture');
   expect(shared.searchParams.has('status')).toBe(false);
+
+  // Clicking a product row while the desktop search input holds an uncommitted draft
+  // opens the product with the applied criteria ('Fixture') rather than wiping the list on blur:
+  await field.focus();
+  await results(page)
+    .getByRole('link', { name: /fixture product 001/i })
+    .click();
+  await expect(
+    page.getByRole('heading', { name: 'Fixture Product 001' }),
+  ).toBeVisible();
+  expect(new URL(page.url()).searchParams.get('search')).toBe('Fixture');
 });
 
 test('invalid carried criteria do not prevent details or returning with valid criteria', async ({

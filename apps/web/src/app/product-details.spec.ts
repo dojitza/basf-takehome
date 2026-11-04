@@ -794,7 +794,8 @@ describe('product details, sharing and navigation (v0.2.0)', () => {
         expectDetailRequest(id1).flush(detailRecord);
         await update();
 
-        button(/copy link/i).click();
+        const copyBtn = button(/copy link/i);
+        copyBtn.click();
         await update();
 
         expect(text()).not.toMatch(/link copied|copied to clipboard/i);
@@ -818,10 +819,11 @@ describe('product details, sharing and navigation (v0.2.0)', () => {
         expect(
           root().querySelector('input[aria-label*="link" i], input[readonly]'),
         ).toBeNull();
+        expect(document.activeElement).toBe(copyBtn);
       },
     );
 
-    it('copies the link when clipboard.writeText succeeds and allows dismissing the success banner', async () => {
+    it('copies the link when clipboard.writeText succeeds and allows dismissing the success banner with focus returned to Copy link', async () => {
       let copiedText = '';
       Object.defineProperty(navigator, 'clipboard', {
         configurable: true,
@@ -839,7 +841,8 @@ describe('product details, sharing and navigation (v0.2.0)', () => {
       expectDetailRequest(id1).flush(detailRecord);
       await update();
 
-      button(/copy link/i).click();
+      const copyBtn = button(/copy link/i);
+      copyBtn.click();
       await update();
 
       expect(text()).toMatch(/link copied to clipboard/i);
@@ -851,6 +854,90 @@ describe('product details, sharing and navigation (v0.2.0)', () => {
       await update();
 
       expect(text()).not.toMatch(/link copied to clipboard/i);
+      expect(document.activeElement).toBe(copyBtn);
+    });
+
+    it('exposes Back to catalogue while loading without showing Share/Copy link, and focuses the error heading on 503', async () => {
+      await render(`/products/${id1}?search=Alpha&sort=name-desc`);
+
+      // While detail request is still in-flight:
+      const backWhileLoading = link(/back to catalogue/i);
+      expect(backWhileLoading).toBeDefined();
+      expect(findButton(/copy link/i)).toBeUndefined();
+      expect(findButton(/^share$/i)).toBeUndefined();
+
+      expectDetailRequest(id1).flush(
+        { message: 'Database unavailable' },
+        { status: 503, statusText: 'Service Unavailable' },
+      );
+      await update();
+
+      const heading = root().querySelector<HTMLElement>('h1');
+      expect(heading?.textContent).toMatch(/unable to load product/i);
+      expect(document.activeElement).toBe(heading);
+
+      // Returning to catalogue from the error recovery link focuses the catalogue heading.
+      link(/back to catalogue/i).click();
+      await update();
+      const listReq = expectListRequest();
+      expect(listReq.request.params.get('search')).toBe('Alpha');
+      expect(listReq.request.params.get('sort')).toBe('name-desc');
+      listReq.flush(listResponse([catalogueItems[0]]));
+      await update();
+
+      const catalogueHeading = root().querySelector<HTMLElement>('h1');
+      expect(catalogueHeading?.textContent).toMatch(/products/i);
+      expect(document.activeElement).toBe(catalogueHeading);
+    });
+
+    it('does not commit an uncommitted desktop search draft on mousedown when clicking a product row or Copy link to results, and preserves copy feedback on unchanged search blur', async () => {
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: {
+          writeText: jest.fn(() => Promise.resolve()),
+        },
+      });
+
+      await render('/?search=Alpha');
+      const initialListReq = expectListRequest();
+      expect(initialListReq.request.params.get('search')).toBe('Alpha');
+      initialListReq.flush(listResponse([catalogueItems[0]]));
+      await update();
+
+      const copyResultsBtn = button(/copy link to results/i);
+      copyResultsBtn.click();
+      await update();
+      expect(text()).toMatch(/link copied to clipboard/i);
+
+      // Focusing and blurring desktop search without changing text preserves the copied banner:
+      const searchInput =
+        root().querySelector<HTMLInputElement>('#desktop-search')!;
+      searchInput.dispatchEvent(new Event('focus'));
+      searchInput.dispatchEvent(new Event('blur'));
+      await update();
+      expect(text()).toMatch(/link copied to clipboard/i);
+
+      // Typing an uncommitted draft and mousedown + clicking a product row opens the product
+      // with applied criteria ('Alpha') without firing a new list search request:
+      searchInput.value = 'UncommittedDraft';
+      searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+      await update();
+
+      const productAnchor = link(/alpha/i);
+      productAnchor.dispatchEvent(
+        new MouseEvent('mousedown', { bubbles: true }),
+      );
+      searchInput.dispatchEvent(new Event('blur'));
+      await update();
+
+      // Product row is still intact and no new catalogue search request was sent:
+      http.expectNone((req) => req.url === '/api/products');
+      productAnchor.click();
+      await update();
+
+      expectDetailRequest(id1).flush(detailRecord);
+      await update();
+      expect(location.path()).toBe(`/products/${id1}?search=Alpha`);
     });
   });
 });

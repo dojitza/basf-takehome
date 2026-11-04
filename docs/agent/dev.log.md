@@ -103,7 +103,7 @@ Verification: `npm run check` passed lint, formatting, 60 unit tests and both bu
 
 ## 2026-11-03 — Catalogue browsing planning
 
-Started [the catalogue browsing working plan](catalogue-browsing-plan.md), covering PrimeNG default building blocks, product design and technical decisions still open, and representative proposed behavior. Inspected installed PrimeNG public types and official component documentation. Planning only; no tests run and no slice behavior approved or implemented.
+Started [the catalogue browsing working plan](catalogue/catalogue-browsing-plan.md), covering PrimeNG default building blocks, product design and technical decisions still open, and representative proposed behavior. Inspected installed PrimeNG public types and official component documentation. Planning only; no tests run and no slice behavior approved or implemented.
 
 Added a proposed end-to-end browsing sequence to the working plan, from Angular through NestJS and PostgreSQL, including validation, results, empty and failure states. A brand reference is expected later; no visual design or feature implementation was performed. No tests run.
 
@@ -137,7 +137,7 @@ Recorded agreed sharing direction for catalogue and product views and the human'
 
 Outlined proposed frontend Jest integration/unit and isolated Playwright coverage in the browsing plan, including URL state, loading, request races and mobile interaction, with detail/review cases deferred. Discussion only; no tests implemented or run.
 
-Expanded the proposed browsing coverage in [catalogue-browsing-tests.md](catalogue-browsing-tests.md): frontend state/component/router behavior, API validation and responses, real database search/filter/sort/batch semantics and five real-stack browser journeys. Marked unresolved contract decisions and conditional recent-search/detail/review cases; included duplication and runtime limits. Documentation only; no tests implemented or run.
+Expanded the proposed browsing coverage in [catalogue-browsing-tests.md](catalogue/catalogue-browsing-tests.md): frontend state/component/router behavior, API validation and responses, real database search/filter/sort/batch semantics and five real-stack browser journeys. Marked unresolved contract decisions and conditional recent-search/detail/review cases; included duplication and runtime limits. Documentation only; no tests implemented or run.
 
 Recorded deferred browsing tests in TODO.md and prepared the browsing plan, behavior list and image references for a plan commit. The human requested test implementation after that commit; product behavior and API details that remain open must not be presented as approved. No test code or application feature was added in the plan commit.
 
@@ -210,3 +210,23 @@ Verification: `npm run check` passed (69 API and 30 frontend unit tests, lint, f
 ## 2026-11-03 — Architectural review for discussion
 
 Added the requested narrative architectural review to the existing human milestone document, preserving its prior notes. Cross-checked import transactions, migration, query behavior and Angular state ownership against source. Updated the documentation entry point and continuation guidance to reflect the human's explicit use of the previously reserved folder. Documentation only; no runtime changes or new test runs.
+
+## 2026-11-03 — Future code review criteria
+
+Added [deferred review criteria](code-review.md) covering frontend/backend readability, responsibilities, duplication, correctness and verification, with a suggested bounded workflow. Linked from the documentation index and backlog. Documentation only; no application tests run.
+
+## 2026-11-03 — Product details scope proposal
+
+Recorded the v0.2.0 target delivery checklist and phase 1 proposal in [product-details-plan.md](product-details/product-details-plan.md), linked from the backlog and documentation index. Inspected assignment, browsing agreements and product schema to ground the proposal. Scope is pending discussion. Documentation only; no application tests run.
+
+## 2026-11-03 — Narrowed slice boundaries
+
+Updated the product details plan and backlog; saved filter/sort planning inputs in catalogue-filter-sort-follow-up.md for the following slice. Documentation only; no application tests run.
+
+## 2026-11-03 — Consolidated phase 1 understanding
+
+Reconciled the product-details plan with the behavioral agreements and acceptance examples. Phase 1 awaits human review; phase 2 and implementation have not started. Documentation-only verification: git diff --check; no application tests run.
+
+## 2026-11-04 — Design references and documentation organization
+
+Saved seven ImageGen boards under product-details/references and linked them from the product details plan. Grouped related agent documents under catalogue, brand and product-details; updated affected links. Documentation and images only; no application tests run.

@@ -345,3 +345,47 @@ The human requested a readable architectural review in the existing `docs/human/
 The human observed that the desktop catalogue seems to have too much whitespace and would like to explore a denser layout. Codex recorded this as a pending design exploration in TODO.md; no design or implementation change has been agreed.
 
 The human also suggested exploring a data grid for the catalogue list and developing the design further with customers. Codex added both to the pending exploration; no approach has been selected.
+
+## 2026-11-03 — Defer broad refactoring
+
+The human proposed five frontend/backend review loops with Codex finding issues and Luna at max reasoning fixing them. Codex recommended finishing the agreed core features first, then reviewing concrete issues in bounded batches with an early stop when no material findings remain. The human deferred the workflow and requested retaining the review criteria for future use. Codex documented them in docs/agent/code-review.md and linked them from the documentation index and backlog. No refactoring or delegation was performed.
+
+## 2026-11-03 — Next slice delivery process
+
+The human specified an eleven-phase process covering behavioral scope, architectural constraints, tests, adversarial reviews, implementation, human click-through and feedback loops, then final review and fixes. They requested recording it for target v0.2.0 and starting only phase 1. Codex recorded the checklist and proposed product details, direct links and catalogue return behavior as the next slice, with reviews separate. Scope remains pending human agreement; no tests, implementation or delegation were performed.
+
+## 2026-11-03 — Phase 1 scope clarification
+
+The human requested iterative questions before reviewing Codex’s understanding. They selected inspecting/sharing products, sharing catalogue searches and additional filtering/sorting, confirmed launch-year sorting in principle, and requested recommendations for filters and other sorts. Codex inspected CSV field values to ground those recommendations. Detailed behavior and filter selection remain pending; no implementation started.
+
+## 2026-11-03 — Keep the current slice focused
+
+After Codex proposed function filtering and launch-year sorting alongside product details, the human directed deferring all new filtering and sorting to the following slice and returning this slice to sharing and navigation as initially recommended. Codex updated the current proposal and preserved the discussed options, recommendations and unresolved semantics in docs/agent/catalogue-filter-sort-follow-up.md. Product inspection remains part of the original slice; detailed behavior is still in phase 1 discussion.
+
+## 2026-11-03 — Sharing context and restoration questions
+
+Codex proposed copying catalogue criteria without position and returning direct product visitors to the default catalogue. The human requested native mobile sharing and including the sender’s catalogue criteria in product links. They ideally want full return restoration but questioned accessible infinite-scroll complexity and whether page-based navigation would be preferable. Codex updated the proposal; pagination and restoration boundaries remain under discussion.
+
+## 2026-11-03 — Sharing agreement; restoration still open
+
+The human accepted native sharing where supported plus Copy link, normal cancellation and manual-copy fallback. They accepted product identity independent of carried catalogue criteria and default-catalogue return for links without criteria. They explicitly requested more restoration discussion rather than accepting Codex’s proposed session-only restoration boundary. Phase 1 continues; restoration is not agreed.
+
+## 2026-11-03 — Simplify catalogue return
+
+Codex proposed retaining loaded results and restoring the opened product’s position/focus during normal navigation. The human initially preferred exact restoration if inexpensive, then directed starting at the top for all scenarios, describing sharing scroll position as overkill. Codex interpreted the latest direction as criteria preservation without position restoration on catalogue visits or returns, stated that interpretation, and updated the plan. No implementation started.
+
+## 2026-11-03 — Product information agreement
+
+The human accepted all proposed customer-facing product fields without database/import metadata, the SKU/Not provided/None listed fallbacks, and retained detail access with clear availability explanations for absent, discontinued, phase-out and unknown-status products. Phase 1 continues toward a complete understanding for human review.
+
+## 2026-11-03 — Phase 1 understanding ready for review
+
+The human accepted whole-row links to a dedicated responsive product page in the existing visual style, normal link behavior, return/sharing controls and no review placeholders. They accepted Product not found with return preserving valid criteria, plus Retry/return on service failures without stale details. Codex consolidated the agreed behavior and acceptance examples for human review, leaving phase 1 open and phase 2 unstarted.
+
+## 2026-11-03 — Visual references for review
+
+The human requested ImageGen desktop and mobile references for the enumerated screens before proceeding. Codex used the built-in ImageGen tool and existing catalogue captures to generate review-only references for catalogue, product details, loading, not found, service error, sharing feedback, and unavailable/missing data. The images are illustrative and await human review; no application changes or delegation were made.
+
+## 2026-11-04 — Save design references and group agent documentation
+
+The human said the generated designs looked good and asked to bank them and make the agent documentation slightly less flat. Codex saved the seven desktop/mobile ImageGen reference boards alongside the product details plan, grouped catalogue and brand materials, and updated documentation links. The designs are accepted as reference direction; behavioral review and implementation remain pending. The existing human-folder reorganization was preserved.

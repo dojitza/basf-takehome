@@ -8,7 +8,7 @@ The shell and readiness endpoint are infrastructure only. The import slice adds 
 
 ## Working process and configuration
 
-Follow root AGENTS.md. Propose acceptance behavior and material decisions, discuss, implement/verify, and return a reviewable result. The human has opened docs/human/v0.1.0.md for milestone notes and architectural review; preserve their writing. AI_USAGE.md is the source log for all human steering and disagreements; do not duplicate those accounts here.
+Follow root AGENTS.md. Propose acceptance behavior and material decisions, discuss, implement/verify, and return a reviewable result. The human has opened docs/human/v0.1.0/v0.1.0.md for milestone notes and architectural review; preserve their writing. AI_USAGE.md is the source log for all human steering and disagreements; do not duplicate those accounts here.
 
 The human will provide a PrimeNG Community key in ignored apps/web/src/primeng-license.local.ts (`primeNgLicenseKey`). Do not read or print that value. npm installation initializes a blank file only when absent. Missing-key notices remain until configured. Check the package's public types/documentation for configuration; do not inspect its restricted implementation to bypass licensing.
 
@@ -16,4 +16,6 @@ Use Node 22.22.3/npm 10. Root `npm run check` runs lint, format check, Jest and 
 
 ## Continuation
 
-Consult dev.log.md for verification evidence and testing-strategy.md for the Playwright workflow. The hardened import and catalogue tests were committed as `0ec7f98`; implementation fixes pass unit, PostgreSQL integration and browser tests and await human review. Search is limited to 200 characters; import expects only the known headers and four-digit years. Catalogue browsing and design remain pending human review. Agreed catalogue rules and remaining limits are in catalogue-browsing-plan.md. Recent searches, product details, reviews and performance diagnostics are deferred in TODO.md.
+Consult dev.log.md for verification evidence and testing-strategy.md for the Playwright workflow. The hardened import and catalogue tests were committed as `0ec7f98`; implementation fixes pass unit, PostgreSQL integration and browser tests and await human review. Search is limited to 200 characters; import expects only the known headers and four-digit years. Catalogue browsing and design remain pending human review. Agreed catalogue rules and remaining limits are in [the catalogue browsing plan](catalogue/catalogue-browsing-plan.md). Recent searches, product details, reviews and performance diagnostics are deferred in TODO.md.
+
+The [product details slice](product-details/product-details-plan.md) is in phase 1: the human liked the generated visual references, which are saved with the plan. The consolidated behavior still awaits human review; no phase 2 work has started.

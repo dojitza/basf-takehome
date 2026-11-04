@@ -293,3 +293,21 @@ Verification evidence:
 - PostgreSQL integration (`npm run test:integration`): 74 passed across 3 suites (`catalogue-browsing.integration-spec.ts`, `catalogue-import.integration-spec.ts`, `health.integration-spec.ts`).
 - Playwright E2E (`npm run test:e2e`): all 34 browser tests pass across desktop and mobile viewports in 30.5 s (`catalogue-browsing.spec.ts`, `catalogue-design.spec.ts`, `product-details.spec.ts`).
 - `npm run check` passes lint, format check, all unit tests, and production builds for both apps. No git commit made.
+
+## 2026-11-04 — Phase 6 adversarial review of product-details implementation
+
+Reviewed the phase 5 implementation (`edd8c62` and `59b2b59`) across backend and frontend against [product-details-plan.md](product-details/product-details-plan.md), the visual reference boards (`docs/agent/product-details/references/`), and [code-review.md](code-review.md). Recorded 6 concrete defects and 3 maintainability/duplication findings in [product-details-plan.md](product-details/product-details-plan.md):
+
+- **Concrete defects:**
+  1. Missing heading and focus placement on `ProductDetailsComponent` service-error states (`503`/network failures lack an `<h1>` focus target and never set `shouldFocusHeading`) and on `CatalogueComponent` when returning via `Back to catalogue` or Browser Back (focus drops to `document.body`).
+  2. Invalid-criteria warning state leak via `history.state` (`CatalogueComponent` reads `location.getState().warning` / `history.state.warning` on every `queryParamMap` emission without clearing it, while `ProductDetailsComponent` computes `hasWarning` without rendering a banner and strips invalid params before `Back to catalogue`, losing warnings on middle-click/new-tab opens).
+  3. Stale clipboard/share feedback (`copiedMessage`, `copyFailed`, `manualLink`) across `queryParamMap` changes in both `CatalogueComponent` and `ProductDetailsComponent`, plus unguarded async `navigator.clipboard.writeText(url)` completion.
+  4. `Share` and `Copy link` controls rendered unconditionally on `ProductDetailsComponent` during loading, 404, and 503 states, and missing the in-card `Back to catalogue` recovery action shown in `references/not-found.png` and `references/service-error.png`.
+  5. Mobile toolbar crowding in `CatalogueComponent` (`Share` and `Copy link` placed inside the single-row `.toolbar` with `flex: 1 1 0`, squeezing up to 5 buttons into one row below `600px` instead of wrapping onto a secondary row as in `references/catalogue.png`) and hard `minmax(18rem, 1fr)` grid minimum on `.product-properties`.
+  6. Wildcard route `{ path: '**', redirectTo: '' }` in `app.routes.ts` silently redirecting unknown/multi-segment paths to `/` instead of showing a not-found state.
+- **Maintainability & duplication:**
+  7. Near-verbatim duplication of share/clipboard state, methods, and fallback UI across `CatalogueComponent` and `ProductDetailsComponent`.
+  8. Customer-facing availability helpers split between `criteria.ts` (`statusLabel`, `statusSeverity`) and `ProductDetailsComponent` (`isUnavailable`).
+  9. Redundant `this.router.initialNavigation()` in `App.constructor()`, uncleaned `router.events` subscription in `App`, and `@for (...; track product.sku)` instead of `track product.id` in `catalogue.html`.
+
+Documentation-only review phase; no application code modified. Phase 7 (address implementation review findings) is next.

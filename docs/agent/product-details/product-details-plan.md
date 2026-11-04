@@ -1,6 +1,6 @@
 # Product details, sharing and navigation — v0.2.0
 
-Status: phase 1 behavior reviewed by the human; phase 2 architecture accepted for proceeding; phase 3 test batch written and phase 4 adversarial test review completed; phase 5 implementation completed and verified green across all test suites. v0.2.0 is a target, not a released or accepted version.
+Status: phase 1 behavior reviewed by the human; phase 2 architecture accepted for proceeding; phase 3 test batch written and phase 4 adversarial test review completed; phase 5 implementation completed and verified green; phase 6 adversarial review of implementation completed. v0.2.0 is a target, not a released or accepted version.
 
 ## Delivery checklist
 
@@ -9,7 +9,7 @@ Status: phase 1 behavior reviewed by the human; phase 2 architecture accepted fo
 - [x] 3. Build tests — test-first batch written and baseline run; results and limitations below.
 - [x] 4. Adversarial review of tests.
 - [x] 5. Implement to pass tests.
-- [ ] 6. Adversarial review of implementation.
+- [x] 6. Adversarial review of implementation.
 - [ ] 7. Address implementation review findings.
 - [ ] 8. Human behavioral review and click-through.
 - [ ] 9. Address human review in a loop until the human accepts the behavior.
@@ -154,3 +154,47 @@ Implemented full frontend and backend slices to fulfill the agreed v0.2.0 contra
    - PostgreSQL integration: 74/74 pass across 3 suites (`catalogue-browsing.integration-spec.ts`, `catalogue-import.integration-spec.ts`, `health.integration-spec.ts`).
    - Playwright E2E: 34/34 pass across desktop and mobile viewports (`catalogue-browsing.spec.ts`, `catalogue-design.spec.ts`, `product-details.spec.ts`).
    - `npm run check` passes lint, format check, unit tests, and production builds for both apps.
+
+### Phase 6: adversarial review of implementation
+
+Reviewed the Phase 5 commits (`edd8c62` and `59b2b59`) across backend and frontend against this plan, the visual reference boards, and [future code review criteria](../code-review.md) (Readability, Responsibilities, Duplication, Correctness, Verification). No application code was modified during this review phase.
+
+#### Concrete defects (correctness, accessibility, routing, and layout)
+
+1. **Missing heading and focus management on detail service-error states and catalogue return (`apps/web/src/app/product-details/product-details.ts#L120-L169`, `apps/web/src/app/product-details/product-details.html#L104-L108`, `apps/web/src/app/catalogue/catalogue.ts#L106-L125`, `apps/web/src/app/catalogue/catalogue.html#L15`):**
+   - *Impact:* While 200 and 404 responses on `ProductDetailsComponent` set `shouldFocusHeading = true` and focus `<h1 #heading tabindex="-1">`, non-404 service errors (`@else if (error)`) render `<div role="alert" class="error">` without a heading or focus target (`shouldFocusHeading` is never set on lines 164–167). Similarly, returning to `CatalogueComponent` via `Back to catalogue` or Browser Back destroys `ProductDetailsComponent` without placing focus on the catalogue `<h1 tabindex="-1">Products</h1>` or main landmark, leaving keyboard focus on `document.body`. This violates the phase 2 agreement (*"Ensure navigation resets scroll and sets sensible focus after the view is rendered, including browser Back and error states"*).
+   - *Smallest fix:* Add `<h1 #heading tabindex="-1">Unable to load product</h1>` inside the detail error block and set `this.shouldFocusHeading = true` in the non-404 error branch of `loadProduct()`; add `#heading tabindex="-1"` to `CatalogueComponent`'s `<h1>Products</h1>` and focus it when navigating back from product details.
+
+2. **Invalid-criteria warning state leak via `history.state` (`apps/web/src/app/product-details/product-details.ts#L109-L116`, `apps/web/src/app/product-details/product-details.html#L7`, `apps/web/src/app/catalogue/catalogue.ts#L112-L117`):**
+   - *Impact:* `ProductDetailsComponent` strips invalid `status`/`sort` parameters immediately when computing `criteriaQueryParams` for `Back to catalogue`, and passes `[state]="{ warning: hasWarning }"` to make `CatalogueComponent` show its warning banner on return. In `CatalogueComponent`, `this.warning = parsed.hasWarning || Boolean(locationState?.warning) || Boolean(history.state?.warning)` reads `history.state.warning` on every `queryParamMap` emission without clearing it, so a `true` warning in `history.state` can stick across subsequent valid interactions or history traversals. Conversely, middle-clicking or opening `Back to catalogue` in a new tab drops `history.state` and loses the warning, while `ProductDetailsComponent` computes `hasWarning` (`product-details.ts#L114`) without ever rendering a notice on the detail view itself.
+   - *Smallest fix:* Render the invalid-criteria warning banner on `ProductDetailsComponent` when `hasWarning` is true (or consume and clear transient `history.state.warning` via `replaceState` on initial read in `CatalogueComponent` so it cannot persist across subsequent valid query changes, and omit `[state]` when `hasWarning` is false).
+
+3. **Stale clipboard / share feedback across criteria changes and unguarded async clipboard completion (`apps/web/src/app/catalogue/catalogue.ts#L110-L122`, `apps/web/src/app/catalogue/catalogue.ts#L410-L433`, `apps/web/src/app/product-details/product-details.ts#L109-L116`, `apps/web/src/app/product-details/product-details.ts#L201-L224`):**
+   - *Impact:* In `CatalogueComponent`, `route.queryParamMap` updates do not reset `copiedMessage`, `copyFailed`, or `manualLink` (and in `ProductDetailsComponent`, `queryParamMap` changes do not reset them either). If a customer copies a link (or triggers the manual copy fallback textbox showing `http://.../?search=Old`) and then changes search, filter, or sort criteria, the stale `"Link copied to clipboard."` message or the outdated URL in the fallback textbox remains on screen for the new criteria. In addition, `await navigator.clipboard.writeText(url)` does not check whether the active URL or component lifecycle changed while the promise was pending.
+   - *Smallest fix:* Reset `copiedMessage`, `copyFailed`, and `manualLink` whenever `queryParamMap` (or committed criteria) changes on both components, and guard async `copyLink()` resolution with a request/generation counter and destroy check.
+
+4. **Sharing controls shown on detail loading, 404, and 503 states (`apps/web/src/app/product-details/product-details.html#L4-L66`):**
+   - *Impact:* `.detail-nav` unconditionally renders `.share-actions` (`Share` and `Copy link`) while `loading`, `notFound`, or `error` is active, and omits the centered recovery `Back to catalogue` action inside the 404 and 503 cards shown in the visual references (`references/loading.png`, `references/not-found.png`, `references/service-error.png`).
+   - *Smallest fix:* Render `.share-actions` only when `product` is loaded (`@if (product)`), and include the recovery `Back to catalogue` link alongside `Retry` in the 404/503 states as shown in the visual references.
+
+5. **Mobile toolbar crowding on Catalogue and narrow-screen grid minimum on Product Details (`apps/web/src/app/catalogue/catalogue.html#L21-L121`, `apps/web/src/app/catalogue/catalogue.scss#L274-L285`, `apps/web/src/app/product-details/product-details.scss#L131-L135`):**
+   - *Impact:* Placing `Share` and `Copy link` inside `.toolbar` with `class="toolbar-button"` forces 4 buttons (or 5 buttons when `navigator.share` is available on mobile) into a single non-wrapping flex row (`flex: 1 1 0; padding-inline: 0.35rem`) below `600px`, leaving ~55px per button on a `360px`–`390px` viewport and cramping labels/icons compared to `references/catalogue.png` (which places `Share` and `Copy link` in a secondary row below `Search`, `Filters`, and `Sort` on mobile). On `ProductDetailsComponent`, `.product-properties` uses `minmax(18rem, 1fr)`, which sits right at the `288px` content width of a `320px` viewport.
+   - *Smallest fix:* Group `Share` and `Copy link` so they wrap cleanly onto a second row on mobile viewports (`max-width: 600px`) while keeping `Search`, `Filters`, and `Sort` equal-width on the first row, and change `.product-properties` to `minmax(min(100%, 18rem), 1fr)`.
+
+6. **Wildcard route `{ path: '**', redirectTo: '' }` masks unknown paths (`apps/web/src/app/app.routes.ts#L8`):**
+   - *Impact:* Navigating to an unknown or multi-segment URL (such as `/products/extra/segment` or a mistyped path) silently redirects to the catalogue root `/` instead of rendering a not-found state.
+   - *Smallest fix:* Route unknown paths (`**`) to `ProductDetailsComponent` (or a not-found state preserving valid carried criteria) rather than silently redirecting to `''`.
+
+#### Maintainability, responsibilities, and duplication findings
+
+7. **Duplicated share/clipboard state, logic, and styles across `CatalogueComponent` and `ProductDetailsComponent` (`apps/web/src/app/catalogue/catalogue.ts#L67-L70`, `apps/web/src/app/catalogue/catalogue.ts#L387-L440`, `apps/web/src/app/product-details/product-details.ts#L39-L42`, `apps/web/src/app/product-details/product-details.ts#L178-L231`):**
+   - *Impact:* `canShare`, `copiedMessage`, `copyFailed`, `manualLink`, `getAbsoluteUrl()`, `share()`, and `copyLink()` (along with `.copy-banner` and `.copy-fallback` templates/styles) are duplicated nearly verbatim across both components. Any bug fix (such as resetting state on criteria change or guarding async clipboard writes) must currently be maintained in two places.
+   - *Smallest fix:* Extract a small shared helper or component/controller for link sharing and clipboard fallback, or consolidate the state transition logic in a shared module.
+
+8. **Split availability derivation between `criteria.ts` and `ProductDetailsComponent` (`apps/web/src/app/criteria.ts#L105-L122`, `apps/web/src/app/product-details/product-details.ts#L171-L176`):**
+   - *Impact:* `statusLabel()` and `statusSeverity()` live in `criteria.ts`, whereas `isUnavailable()` and the availability explanation rules live in `ProductDetailsComponent` (`product-details.ts` and `product-details.html#L121-L128`), and `criteria.ts` mixes URL query parsing with product availability presentation.
+   - *Smallest fix:* Keep customer-facing availability helpers (`statusLabel`, `statusSeverity`, `isUnavailable`) together so list and detail views share a single source of truth.
+
+9. **Redundant `this.router.initialNavigation()` in `App.constructor()` and tracking key in `catalogue.html` (`apps/web/src/app/app.ts#L16-L34`, `apps/web/src/app/catalogue/catalogue.html#L250`):**
+   - *Impact:* `provideRouter(routes)` already performs initial navigation; calling `this.router.initialNavigation()` inside `App.constructor()` triggers a duplicate synchronous navigation on component creation (which causes an immediate cancelled `/api/products` request whenever a test creates `App` before calling `router.navigateByUrl`), and the `router.events` subscription in `App` lacks `takeUntilDestroyed()`. In `catalogue.html#L250`, `@for (product of products; track product.sku)` still tracks by `sku` rather than `product.id`.
+   - *Smallest fix:* Remove the redundant `this.router.initialNavigation()` call if not required by tests, add `takeUntilDestroyed()` to `App`'s router subscription, and track catalogue items by `product.id`.

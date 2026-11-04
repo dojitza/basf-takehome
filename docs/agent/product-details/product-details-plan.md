@@ -1,6 +1,6 @@
 # Product details, sharing and navigation — v0.2.0
 
-Status: phase 1 behavior reviewed by the human; phase 2 architecture accepted for proceeding; phase 3 test batch written and phase 4 adversarial test review completed. v0.2.0 is a target, not a released or accepted version. No implementation started for this slice.
+Status: phase 1 behavior reviewed by the human; phase 2 architecture accepted for proceeding; phase 3 test batch written and phase 4 adversarial test review completed; phase 5 implementation completed and verified green across all test suites. v0.2.0 is a target, not a released or accepted version.
 
 ## Delivery checklist
 
@@ -8,7 +8,7 @@ Status: phase 1 behavior reviewed by the human; phase 2 architecture accepted fo
 - [x] 2. Architectural constraints — proposed approach accepted for proceeding; UUID identity agreed.
 - [x] 3. Build tests — test-first batch written and baseline run; results and limitations below.
 - [x] 4. Adversarial review of tests.
-- [ ] 5. Implement to pass tests.
+- [x] 5. Implement to pass tests.
 - [ ] 6. Adversarial review of implementation.
 - [ ] 7. Address implementation review findings.
 - [ ] 8. Human behavioral review and click-through.
@@ -119,3 +119,38 @@ Phase 3 will write tests before implementation; phase 4 will review those tests 
 - **PostgreSQL integration hardened (`apps/api/test/catalogue-browsing.integration-spec.ts`):** Eliminated the vacuous 404 pass (asserting domain 404 rather than NestJS's default `Cannot GET` route-missing response and verifying that non-UUID primary keys and property-generated malformed IDs are rejected), added case-insensitive UUID lookup coverage against the `TEXT` primary key, tested `applicationArea: null` and multi-certification arrays with exact 12-key schema checks on all detail responses, verified lookup independence from invalid catalogue query parameters, added concurrent import + detail/list read consistency coverage, and injected Prisma-specific infrastructure errors (`P1001`, `PrismaClientInitializationError`) to ensure database failures never masquerade as 404s.
 - **Playwright E2E hardened (`tests/e2e/product-details.spec.ts`, `scripts/run-browser-tests.mjs`):** Added `pageerror` listeners for uncaught exceptions/unhandled rejections; replaced unnecessary `page.route` stubs with real PostgreSQL records (`P-001`..`P-004`, `P-121` absent discontinued, `P-122` unnamed all-null absent); added whole-row anchor geometry, heading focus placement, deep-link logo rendering, no-horizontal-overflow, and exact 6-count `"Not provided"` assertions; verified both `Back to catalogue` and Browser Back (`page.goBack()`) after scrolling multiple batches reset `window.scrollY` to `0` and batch count to one batch; and verified clipboard failure feedback without false copy-success claims plus hidden native `Share` when `navigator.share` is unsupported.
 - **Post-review baseline (unimplemented application):** API unit tests pass (69/69); Frontend Jest runs 57 tests (29 pass, 28 fail on unimplemented v0.2.0 routes/links and unimplemented catalogue query normalization for oversized search, repeated scalars, and whitespace-only application areas); PostgreSQL integration runs 74 tests across 3 suites (58 pass, 16 fail in `catalogue-browsing.integration-spec.ts` with zero vacuous passes on detail routes); existing 13 catalogue Playwright tests pass (13.6 s), and all 21 product-details Playwright tests fail at the expected missing routes/controls.
+
+### Phase 5: implementation to pass tests
+
+Implemented full frontend and backend slices to fulfill the agreed v0.2.0 contracts:
+
+1. **Backend API (`apps/api/src/products.controller.ts`):**
+   - Added `id` selection to `GET /api/products` catalogue list query.
+   - Added `GET /api/products/:id` selecting exactly the 12 customer-facing and availability fields (`id`, `sku`, `name`, `chemicalName`, `function`, `applicationArea`, `region`, `certifications`, `status`, `launchYear`, `description`, `presentInLatestImport`).
+   - Validates UUID structure via regex, rejecting malformed and non-UUID primary keys with a domain 404 (preventing route-missing `Cannot GET` responses and database exceptions from leaking). Accepts uppercase/mixed-case UUIDs via lowercase normalization.
+   - Preserves infrastructure error responses (P1001, initialization errors, unexpected DB failures) as generic server errors without leaking SQL, passwords, or Prisma internals.
+
+2. **Frontend Architecture & Routing (`apps/web/src/app/`):**
+   - Extracted `CatalogueComponent` (`apps/web/src/app/catalogue/`) from `App`, keeping `App` as the slim application shell with `<header>` and `<router-outlet>`.
+   - Configured Angular Router routes: `''` maps to `CatalogueComponent`, `'products/:id'` maps to `ProductDetailsComponent`, and `'**'` redirects to `''`.
+   - Added `apps/web/src/app/criteria.ts` containing shared normalization, query parameter serialization, and status display utilities. Handles oversized `search > 200`, repeated scalar parameters (`search`, `sort`), whitespace-only `applicationArea`, and invalid `status`/`sort` values with user warning banners and clean defaults.
+   - Preserves candidate application areas in detail return links for catalogue data validation.
+
+3. **Product Details & Accessibility (`apps/web/src/app/product-details/`):**
+   - Dedicated page fetching `/api/products/:id` with loading state (`[aria-busy="true"], [role="status"]`), 404 Product Not Found (without Retry), and temporary service failure alert (with single in-flight duplicate-click guarded Retry).
+   - Automatically sets focus to the `<h1>` heading upon successful load and on 404 error views.
+   - Renders all customer-facing fields with exact agreed fallback texts: SKU heading fallback when unnamed, exact 6-count `"Not provided"` for missing nullable scalar fields, and `"None listed"` for empty certifications.
+   - Strictly enforces availability precedence: `presentInLatestImport === false` takes precedence over source status with the agreed absent explanation; `status === 'UNKNOWN'` explains unconfirmed availability; valid statuses display appropriate badges without inventory/stock assertions.
+   - Immediately clears previous product details upon route navigation, cancelling in-flight requests and ignoring obsolete late responses or errors.
+
+4. **Sharing & Navigation Fallback:**
+   - Feature-detects `navigator.share`, showing native Share button only when supported and ignoring cancellations (`AbortError`) without false copy success claims.
+   - Implemented Copy Link with success feedback banner and fallback to an accessible readonly textbox with failure feedback when clipboard write permissions fail or clipboard API is unavailable.
+   - Added whole-row links covering item geometry in catalogue rows. Back to catalogue and Browser Back preserve carried criteria, reset scroll position (`window.scrollY = 0`), and start at the top with a single batch.
+
+5. **Verification Evidence:**
+   - API unit tests: 69/69 pass.
+   - Frontend Jest: 57/57 pass across `app.spec.ts`, `catalogue-browsing.spec.ts`, and `product-details.spec.ts`.
+   - PostgreSQL integration: 74/74 pass across 3 suites (`catalogue-browsing.integration-spec.ts`, `catalogue-import.integration-spec.ts`, `health.integration-spec.ts`).
+   - Playwright E2E: 34/34 pass across desktop and mobile viewports (`catalogue-browsing.spec.ts`, `catalogue-design.spec.ts`, `product-details.spec.ts`).
+   - `npm run check` passes lint, format check, unit tests, and production builds for both apps.

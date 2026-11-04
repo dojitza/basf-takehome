@@ -257,3 +257,39 @@ Verification (against the unimplemented v0.2.0 slice):
 - Frontend Jest (`npm test -w @product-finder/web`): 29 passed, 28 failed (57 total: 1 in `catalogue-browsing.spec.ts` for missing row links and 27 in `product-details.spec.ts`, including 4 failing directly on the existing catalogue route for unnormalized oversized search, repeated scalar parameters, and whitespace-only `applicationArea`).
 - PostgreSQL integration (`npm run test:integration`): 58 passed, 16 failed (74 total across 3 suites; all 17 v0.2.0 cases in `catalogue-browsing.integration-spec.ts` now fail as expected with zero vacuous passes, except `includes the product identity` and `returns a bounded summary` which fail on the missing list `id`).
 - Playwright E2E (`npm run test:e2e`): all 13 existing catalogue browsing and design journeys pass in 13.6 s against the updated fixture; all 21 hardened `product-details.spec.ts` journeys fail at the expected missing routes/controls.
+
+## 2026-11-04 — Phase 5 product-details implementation
+
+Implemented the v0.2.0 product details, sharing, and navigation slice to satisfy all requirements and pass all tests:
+
+- **Backend API (`apps/api/src/products.controller.ts`):**
+  - Added `id` selection to `GET /api/products` catalogue list query.
+  - Added `GET /api/products/:id` selecting the exact agreed 12 customer-facing and availability fields (`id`, `sku`, `name`, `chemicalName`, `function`, `applicationArea`, `region`, `certifications`, `status`, `launchYear`, `description`, `presentInLatestImport`).
+  - Added UUID regex validation returning domain 404 for malformed/non-UUID primary keys or missing records. Normalized UUIDs to lowercase to support uppercase and mixed-case client representations.
+  - Retained generic 5xx server errors for database/infrastructure failures (P1001, Prisma initialization errors, connection loss) without leaking SQL, passwords, or Prisma internals.
+
+- **Frontend Routing and Architecture (`apps/web/src/app/`):**
+  - Converted `App` (`apps/web/src/app/app.ts`, `app.html`, `app.scss`) into the common application shell containing the BASF header and `<router-outlet>`.
+  - Extracted `CatalogueComponent` (`apps/web/src/app/catalogue/`) from `App`, keeping search, filter, sort, drawer states, and infinite scrolling.
+  - Configured Angular Router (`apps/web/src/app/app.routes.ts`) with `''` for `CatalogueComponent`, `'products/:id'` for `ProductDetailsComponent`, and `'**'` redirecting to `''`.
+  - Added `apps/web/src/app/criteria.ts` with shared criteria normalization and serialization helpers. Handles oversized `search > 200`, repeated scalar parameters (`search`, `sort`), whitespace-only `applicationArea`, and invalid `status`/`sort` values with warning notifications. Preserves candidate application areas in detail return links for catalogue data validation.
+
+- **Product Details & Accessibility (`apps/web/src/app/product-details/`):**
+  - Built `ProductDetailsComponent` (`product-details.ts`, `product-details.html`, `product-details.scss`) fetching `/api/products/:id` with loading state (`[aria-busy="true"], [role="status"]`), 404 Product Not Found view (without Retry), and temporary service failure alert (with single in-flight duplicate-click guarded Retry).
+  - Placed focus on the `<h1>` heading on successful load and 404 error states.
+  - Rendered all customer-facing fields with exact agreed fallback texts: SKU heading fallback when unnamed, exact 6-count `"Not provided"` for missing nullable scalar fields, and `"None listed"` for empty certifications.
+  - Enforced availability precedence: `presentInLatestImport === false` takes precedence over source status with the absent explanation; `status === 'UNKNOWN'` explains unconfirmed availability; valid statuses display appropriate badges without inventory/stock assertions.
+  - Immediately clears previous product details upon route navigation, cancelling in-flight requests and ignoring obsolete late responses or errors.
+
+- **Sharing and Navigation Fallback:**
+  - Implemented whole-row links covering item geometry in catalogue rows. Back to catalogue and Browser Back preserve carried criteria, reset scroll position (`window.scrollY = 0`), and start at the top with a single batch.
+  - Feature-detected `navigator.share`, showing native Share only when supported and ignoring cancellations (`AbortError`) without false copy success claims.
+  - Implemented Copy Link with success feedback banner and fallback to an accessible readonly textbox with failure feedback when clipboard write permissions fail or clipboard API is unavailable.
+
+Verification evidence:
+- `npm run lint` and `npm run format:check` pass with 0 errors.
+- API unit tests (`npm test -w @product-finder/api`): 69 passed (69 total).
+- Frontend Jest (`npm test -w @product-finder/web`): 57 passed (57 total across `app.spec.ts`, `catalogue-browsing.spec.ts`, and `product-details.spec.ts`).
+- PostgreSQL integration (`npm run test:integration`): 74 passed across 3 suites (`catalogue-browsing.integration-spec.ts`, `catalogue-import.integration-spec.ts`, `health.integration-spec.ts`).
+- Playwright E2E (`npm run test:e2e`): all 34 browser tests pass across desktop and mobile viewports in 30.5 s (`catalogue-browsing.spec.ts`, `catalogue-design.spec.ts`, `product-details.spec.ts`).
+- `npm run check` passes lint, format check, all unit tests, and production builds for both apps. No git commit made.

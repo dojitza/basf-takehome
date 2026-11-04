@@ -1,87 +1,33 @@
 <main>
   <div class="toolbar">
-    <form
-      class="desktop-search"
-      (submit)="$event.preventDefault(); commitSearch()"
-      role="search"
-    >
-      <label class="sr-only" for="desktop-search">Search products or SKU</label>
-      <input
-        pInputText
-        id="desktop-search"
-        type="search"
-        maxlength="200"
-        placeholder="Search products or SKU"
-        [ngModel]="searchInput"
-        name="search"
-        (ngModelChange)="onTyping($event)"
-        (blur)="scheduleSearchCommit()"
-      />
-    </form>
-    <button
-      pButton
-      class="mobile-search-button toolbar-button"
-      severity="secondary"
-      type="button"
-      #searchButton
-      (click)="openSearch(searchButton)"
-    >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
+    <div class="toolbar-primary">
+      <form
+        class="desktop-search"
+        (submit)="$event.preventDefault(); commitSearch()"
+        role="search"
       >
-        <circle cx="11" cy="11" r="7" />
-        <path d="m16 16 4 4" /></svg
-      ><span>Search</span>
-    </button>
-    <button
-      pButton
-      severity="secondary"
-      type="button"
-      class="toolbar-button"
-      #filterButton
-      [attr.aria-expanded]="panel === 'filter'"
-      (click)="openPanel('filter', filterButton)"
-    >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <path d="M3 5h18l-7 8v5l-4 2v-7z" /></svg
-      ><span>Filters</span>
-    </button>
-    <button
-      pButton
-      severity="secondary"
-      type="button"
-      class="toolbar-button"
-      #sortButton
-      [attr.aria-expanded]="panel === 'sort'"
-      (click)="openPanel('sort', sortButton)"
-    >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <path d="M7 3v16m-4-4 4 4 4-4M17 21V5m-4 4 4-4 4 4" /></svg
-      ><span>Sort</span>
-    </button>
-    @if (canShare) {
+        <label class="sr-only" for="desktop-search"
+          >Search products or SKU</label
+        >
+        <input
+          pInputText
+          id="desktop-search"
+          type="search"
+          maxlength="200"
+          placeholder="Search products or SKU"
+          [ngModel]="searchInput"
+          name="search"
+          (ngModelChange)="onTyping($event)"
+          (blur)="scheduleSearchCommit()"
+        />
+      </form>
       <button
         pButton
+        class="mobile-search-button toolbar-button"
         severity="secondary"
         type="button"
-        class="toolbar-button"
-        (click)="share()"
+        #searchButton
+        (click)="openSearch(searchButton)"
       >
         <svg
           aria-hidden="true"
@@ -90,53 +36,147 @@
           stroke="currentColor"
           stroke-width="2"
         >
-          <circle cx="18" cy="5" r="3" />
-          <circle cx="6" cy="12" r="3" />
-          <circle cx="18" cy="19" r="3" />
-          <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-          <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-        </svg>
-        <span>Share</span>
+          <circle cx="11" cy="11" r="7" />
+          <path d="m16 16 4 4" /></svg
+        ><span>Search</span>
       </button>
-    }
-    <button
-      pButton
-      severity="secondary"
-      type="button"
-      class="toolbar-button"
-      (click)="copyLink()"
-    >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
+      <button
+        pButton
+        severity="secondary"
+        type="button"
+        class="toolbar-button"
+        #filterButton
+        [attr.aria-expanded]="panel === 'filter'"
+        (click)="openPanel('filter', filterButton)"
       >
-        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-      </svg>
-      <span>Copy link</span>
-    </button>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M3 5h18l-7 8v5l-4 2v-7z" /></svg
+        ><span>Filters</span>
+      </button>
+      <button
+        pButton
+        severity="secondary"
+        type="button"
+        class="toolbar-button"
+        #sortButton
+        [attr.aria-expanded]="panel === 'sort'"
+        (click)="openPanel('sort', sortButton)"
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path d="M7 3v16m-4-4 4 4 4-4M17 21V5m-4 4 4-4 4 4" /></svg
+        ><span>Sort</span>
+      </button>
+    </div>
+    <div class="toolbar-actions">
+      @if (canShare) {
+        <button
+          pButton
+          severity="secondary"
+          type="button"
+          class="toolbar-button"
+          (click)="share()"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <circle cx="18" cy="5" r="3" />
+            <circle cx="6" cy="12" r="3" />
+            <circle cx="18" cy="19" r="3" />
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+          </svg>
+          <span>Share results</span>
+        </button>
+      }
+      <button
+        pButton
+        severity="secondary"
+        type="button"
+        class="toolbar-button"
+        (click)="copyLink()"
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+        <span>Copy link to results</span>
+      </button>
+    </div>
   </div>
   @if (copiedMessage) {
     <div role="status" class="status-banner success">
-      Link copied to clipboard.
+      <span>Link copied to clipboard.</span>
+      <button
+        pButton
+        severity="secondary"
+        [text]="true"
+        type="button"
+        class="status-banner-dismiss"
+        aria-label="Dismiss notification"
+        (click)="dismissCopiedMessage()"
+      >
+        <span aria-hidden="true">✕</span>
+      </button>
     </div>
   }
   @if (copyFailed) {
     <div class="share-fallback">
-      <p class="share-feedback error">
-        Unable to copy link to clipboard. Please copy the link manually:
-      </p>
-      <input
-        pInputText
-        type="text"
-        readonly
-        [value]="manualLink"
-        aria-label="Catalogue link"
-        (focus)="$any($event.target).select()"
-      />
+      <div class="share-fallback-header">
+        <p class="share-feedback error">
+          Unable to copy link to clipboard. Please copy the link manually:
+        </p>
+        <button
+          pButton
+          severity="secondary"
+          [text]="true"
+          type="button"
+          class="share-fallback-dismiss"
+          aria-label="Dismiss manual copy notice"
+          (click)="dismissManualCopy()"
+        >
+          <span aria-hidden="true">✕</span>
+        </button>
+      </div>
+      <div class="share-fallback-row">
+        <input
+          pInputText
+          type="text"
+          readonly
+          [value]="manualLink"
+          aria-label="Catalogue link"
+          (focus)="$any($event.target).select()"
+        />
+        <button
+          pButton
+          severity="secondary"
+          type="button"
+          (click)="dismissManualCopy()"
+        >
+          Dismiss
+        </button>
+      </div>
     </div>
   }
   @if (
@@ -203,7 +243,7 @@
     </p>
   }
   <div class="results-heading">
-    <h1>Products</h1>
+    <h1 #heading tabindex="-1">Products</h1>
     @if (!loading || products.length) {
       <span>{{ total }} results</span>
     }
@@ -247,7 +287,7 @@
   }
   @if (products.length) {
     <ul class="products" aria-label="Products">
-      @for (product of products; track product.sku) {
+      @for (product of products; track product.id) {
         <li class="product">
           <a
             class="product-link"

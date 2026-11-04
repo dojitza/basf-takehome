@@ -14,12 +14,14 @@ import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { TagModule } from 'primeng/tag';
 import {
+  availabilityExplanation,
   criteriaToQueryParams,
   displayStatus,
   initialCriteria,
   parseCriteria,
   statusSeverity,
 } from '../criteria';
+import { ShareController } from '../sharing';
 
 export type ProductDetail = {
   id: string;
@@ -48,6 +50,7 @@ export class ProductDetailsComponent implements AfterViewChecked, OnDestroy {
   private readonly router = inject(Router);
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly subscriptions = new Subscription();
+  private readonly shareController = new ShareController();
   private request?: Subscription;
   private generation = 0;
   private shouldFocusHeading = false;
@@ -61,18 +64,31 @@ export class ProductDetailsComponent implements AfterViewChecked, OnDestroy {
   loading = false;
   error = false;
   notFound = false;
-  copiedMessage = false;
-  copyFailed = false;
-  manualLink = '';
 
   get canShare(): boolean {
-    return (
-      typeof navigator !== 'undefined' && typeof navigator.share === 'function'
-    );
+    return this.shareController.canShare;
+  }
+
+  get copiedMessage(): boolean {
+    return this.shareController.copiedMessage;
+  }
+
+  get copyFailed(): boolean {
+    return this.shareController.copyFailed;
+  }
+
+  get manualLink(): string {
+    return this.shareController.manualLink;
   }
 
   get criteriaQueryParams() {
     return criteriaToQueryParams(this.criteria);
+  }
+
+  get backState(): { fromDetail: boolean; warning?: boolean } {
+    return this.hasWarning
+      ? { fromDetail: true, warning: true }
+      : { fromDetail: true };
   }
 
   get displayStatus(): string {
@@ -87,20 +103,14 @@ export class ProductDetailsComponent implements AfterViewChecked, OnDestroy {
 
   get availabilityExplanation(): string | null {
     if (!this.product) return null;
-    if (this.product.presentInLatestImport === false) {
-      return 'This product is absent from the latest catalogue import.';
-    }
-    if (this.product.status === 'UNKNOWN') {
-      return 'Product availability is unconfirmed.';
-    }
-    return null;
+    return availabilityExplanation(this.product);
   }
 
   constructor() {
     this.subscriptions.add(
       this.route.paramMap.subscribe((params) => {
         const newId = params.get('id') || '';
-        if (newId !== this.id) {
+        if (newId !== this.id || !newId) {
           this.id = newId;
           this.product = null;
           this.loadProduct();
@@ -112,6 +122,7 @@ export class ProductDetailsComponent implements AfterViewChecked, OnDestroy {
         const parsed = parseCriteria(params);
         this.criteria = parsed.criteria;
         this.hasWarning = parsed.hasWarning;
+        this.shareController.reset();
         this.changeDetector.markForCheck();
       }),
     );
@@ -127,6 +138,7 @@ export class ProductDetailsComponent implements AfterViewChecked, OnDestroy {
   ngOnDestroy() {
     this.request?.unsubscribe();
     this.subscriptions.unsubscribe();
+    this.shareController.destroy();
   }
 
   loadProduct() {
@@ -137,10 +149,17 @@ export class ProductDetailsComponent implements AfterViewChecked, OnDestroy {
     this.error = false;
     this.notFound = false;
     this.product = null;
-    this.copiedMessage = false;
-    this.copyFailed = false;
-    this.manualLink = '';
+    this.shareController.reset();
     this.changeDetector.markForCheck();
+
+    if (!this.id) {
+      this.loading = false;
+      this.error = false;
+      this.notFound = true;
+      this.shouldFocusHeading = true;
+      this.changeDetector.markForCheck();
+      return;
+    }
 
     this.request = this.http
       .get<ProductDetail>(`/api/products/${this.id}`)
@@ -164,6 +183,7 @@ export class ProductDetailsComponent implements AfterViewChecked, OnDestroy {
           } else {
             this.error = true;
             this.notFound = false;
+            this.shouldFocusHeading = true;
           }
           this.changeDetector.markForCheck();
         },
@@ -188,45 +208,25 @@ export class ProductDetailsComponent implements AfterViewChecked, OnDestroy {
   }
 
   share() {
-    if (this.canShare) {
-      navigator
-        .share({
-          title: this.product?.name || this.product?.sku || 'Product details',
-          url: this.getAbsoluteUrl(),
-        })
-        .catch(() => {});
-    }
+    this.shareController.share(
+      this.getAbsoluteUrl(),
+      this.product?.name || this.product?.sku || 'Product details',
+    );
   }
 
   copyLink() {
-    this.copiedMessage = false;
-    this.copyFailed = false;
-    this.manualLink = '';
-    const url = this.getAbsoluteUrl();
+    this.shareController.copy(this.getAbsoluteUrl(), () =>
+      this.changeDetector.markForCheck(),
+    );
+  }
 
-    if (
-      typeof navigator !== 'undefined' &&
-      navigator.clipboard &&
-      typeof navigator.clipboard.writeText === 'function'
-    ) {
-      navigator.clipboard.writeText(url).then(
-        () => {
-          this.copiedMessage = true;
-          this.copyFailed = false;
-          this.changeDetector.markForCheck();
-        },
-        () => {
-          this.copiedMessage = false;
-          this.copyFailed = true;
-          this.manualLink = url;
-          this.changeDetector.markForCheck();
-        },
-      );
-    } else {
-      this.copiedMessage = false;
-      this.copyFailed = true;
-      this.manualLink = url;
-      this.changeDetector.markForCheck();
-    }
+  dismissManualCopy() {
+    this.shareController.dismissFallback();
+    this.changeDetector.markForCheck();
+  }
+
+  dismissCopiedMessage() {
+    this.shareController.dismissSuccess();
+    this.changeDetector.markForCheck();
   }
 }

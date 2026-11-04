@@ -121,3 +121,27 @@ export function statusSeverity(product: {
   if (product.status === 'DISCONTINUED') return 'danger';
   return 'secondary';
 }
+
+export function isUnavailable(product: {
+  status: string;
+  presentInLatestImport?: boolean;
+}): boolean {
+  return (
+    product.presentInLatestImport === false ||
+    product.status === 'UNAVAILABLE' ||
+    product.status === 'UNKNOWN'
+  );
+}
+
+export function availabilityExplanation(product: {
+  status: string;
+  presentInLatestImport?: boolean;
+}): string | null {
+  if (product.presentInLatestImport === false) {
+    return 'This product is absent from the latest catalogue import.';
+  }
+  if (product.status === 'UNKNOWN') {
+    return 'Product availability is unconfirmed.';
+  }
+  return null;
+}

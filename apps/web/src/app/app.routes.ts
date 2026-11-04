@@ -5,5 +5,5 @@ import { ProductDetailsComponent } from './product-details/product-details';
 export const routes: Routes = [
   { path: '', component: CatalogueComponent },
   { path: 'products/:id', component: ProductDetailsComponent },
-  { path: '**', redirectTo: '' },
+  { path: '**', component: ProductDetailsComponent },
 ];

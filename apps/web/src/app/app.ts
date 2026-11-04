@@ -1,4 +1,5 @@
-import { Component, inject } from '@angular/core';
+import { Component, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
 
@@ -10,13 +11,17 @@ import { filter } from 'rxjs/operators';
 })
 export class App {
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   constructor() {
     if (typeof history !== 'undefined' && 'scrollRestoration' in history) {
       history.scrollRestoration = 'manual';
     }
     this.router.events
-      .pipe(filter((event) => event instanceof NavigationEnd))
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef),
+      )
       .subscribe(() => {
         if (
           typeof window !== 'undefined' &&
@@ -30,6 +35,8 @@ export class App {
           }
         }
       });
-    this.router.initialNavigation();
+    if (!this.router.navigated) {
+      this.router.initialNavigation();
+    }
   }
 }

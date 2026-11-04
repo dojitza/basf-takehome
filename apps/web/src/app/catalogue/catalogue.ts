@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Location } from '@angular/common';
 import {
+  AfterViewChecked,
   ChangeDetectorRef,
   Component,
   ElementRef,
@@ -23,6 +24,7 @@ import {
   statusLabel,
   statusSeverity,
 } from '../criteria';
+import { ShareController } from '../sharing';
 
 type Product = {
   id: string;
@@ -48,17 +50,21 @@ type Page = {
   templateUrl: './catalogue.html',
   styleUrl: './catalogue.scss',
 })
-export class CatalogueComponent implements OnDestroy {
+export class CatalogueComponent implements AfterViewChecked, OnDestroy {
   private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly location = inject(Location);
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly subscriptions = new Subscription();
+  private readonly shareController = new ShareController();
   private request?: Subscription;
   private observer?: IntersectionObserver;
   private lastTrigger?: HTMLElement;
   private generation = 0;
+  private shouldFocusHeading = false;
+
+  @ViewChild('heading') headingElement?: ElementRef<HTMLElement>;
 
   @ViewChild('sentinel') set sentinel(
     value: ElementRef<HTMLElement> | undefined,
@@ -89,16 +95,23 @@ export class CatalogueComponent implements OnDestroy {
   loading = false;
   error = false;
   warning = false;
-  copiedMessage = false;
-  copyFailed = false;
-  manualLink = '';
   private loadedKey = '';
   private searchBlurGeneration = 0;
 
   get canShare(): boolean {
-    return (
-      typeof navigator !== 'undefined' && typeof navigator.share === 'function'
-    );
+    return this.shareController.canShare;
+  }
+
+  get copiedMessage(): boolean {
+    return this.shareController.copiedMessage;
+  }
+
+  get copyFailed(): boolean {
+    return this.shareController.copyFailed;
+  }
+
+  get manualLink(): string {
+    return this.shareController.manualLink;
   }
 
   get criteriaQueryParams() {
@@ -106,27 +119,50 @@ export class CatalogueComponent implements OnDestroy {
   }
 
   constructor() {
+    const nav = this.router.getCurrentNavigation();
+    const prevUrl = nav?.previousNavigation?.finalUrl?.toString();
+    const fromDetailNav =
+      prevUrl?.startsWith('/products') || prevUrl?.includes('/products');
+    const locationState = this.location.getState() as
+      { warning?: boolean; fromDetail?: boolean } | undefined;
+    if (locationState?.fromDetail || fromDetailNav) {
+      this.shouldFocusHeading = true;
+    }
+
     this.subscriptions.add(
       this.route.queryParamMap.subscribe((params) => {
         const parsed = parseCriteria(params);
-        const locationState = this.location.getState() as
-          { warning?: boolean } | undefined;
-        this.warning =
-          parsed.hasWarning ||
-          Boolean(locationState?.warning) ||
-          Boolean(typeof history !== 'undefined' && history.state?.warning);
+        const state = this.location.getState() as
+          { warning?: boolean; fromDetail?: boolean } | undefined;
+        const transientWarning = Boolean(state?.warning);
+        this.warning = parsed.hasWarning || transientWarning;
+        if (transientWarning) {
+          const path = this.location.path();
+          const cleanState = { ...(state || {}) };
+          delete cleanState.warning;
+          this.location.replaceState(path, '', cleanState);
+        }
         this.criteria = parsed.criteria;
         this.searchInput = this.criteria.search;
+        this.shareController.reset();
         this.refreshIfChanged();
         this.changeDetector.markForCheck();
       }),
     );
   }
 
+  ngAfterViewChecked() {
+    if (this.shouldFocusHeading && this.headingElement && !this.loading) {
+      this.shouldFocusHeading = false;
+      this.headingElement.nativeElement.focus();
+    }
+  }
+
   ngOnDestroy() {
     this.request?.unsubscribe();
     this.searchBlurGeneration++;
     this.subscriptions.unsubscribe();
+    this.shareController.destroy();
     this.observer?.disconnect();
   }
 
@@ -246,6 +282,7 @@ export class CatalogueComponent implements OnDestroy {
     const wasMobile = this.mobileSearch;
     this.mobileSearch = false;
     if (wasMobile) this.lastTrigger?.focus();
+    this.shareController.reset();
     this.refreshIfChanged();
     this.navigate();
   }
@@ -267,6 +304,7 @@ export class CatalogueComponent implements OnDestroy {
   clearSearch() {
     this.searchBlurGeneration++;
     this.searchInput = '';
+    this.shareController.reset();
     this.commitSearch();
   }
 
@@ -278,12 +316,14 @@ export class CatalogueComponent implements OnDestroy {
       status: [],
       applicationArea: [],
     };
+    this.shareController.reset();
     this.refreshIfChanged();
     this.navigate();
   }
 
   clearSort() {
     this.criteria = { ...this.criteria, sort: 'name' };
+    this.shareController.reset();
     this.refreshIfChanged();
     this.navigate();
   }
@@ -319,6 +359,7 @@ export class CatalogueComponent implements OnDestroy {
   applyPanel() {
     this.criteria = { ...this.draft };
     this.closePanel();
+    this.shareController.reset();
     this.refreshIfChanged();
     this.navigate();
   }
@@ -344,6 +385,7 @@ export class CatalogueComponent implements OnDestroy {
       ...this.criteria,
       [group]: this.criteria[group].filter((item) => item !== value),
     };
+    this.shareController.reset();
     this.refreshIfChanged();
     this.navigate();
   }
@@ -397,45 +439,22 @@ export class CatalogueComponent implements OnDestroy {
   }
 
   share() {
-    if (this.canShare) {
-      navigator
-        .share({
-          title: 'BASF Product Finder',
-          url: this.getAbsoluteUrl(),
-        })
-        .catch(() => {});
-    }
+    this.shareController.share(this.getAbsoluteUrl(), 'BASF Product Finder');
   }
 
   copyLink() {
-    this.copiedMessage = false;
-    this.copyFailed = false;
-    this.manualLink = '';
-    const url = this.getAbsoluteUrl();
+    this.shareController.copy(this.getAbsoluteUrl(), () =>
+      this.changeDetector.markForCheck(),
+    );
+  }
 
-    if (
-      typeof navigator !== 'undefined' &&
-      navigator.clipboard &&
-      typeof navigator.clipboard.writeText === 'function'
-    ) {
-      navigator.clipboard.writeText(url).then(
-        () => {
-          this.copiedMessage = true;
-          this.copyFailed = false;
-          this.changeDetector.markForCheck();
-        },
-        () => {
-          this.copiedMessage = false;
-          this.copyFailed = true;
-          this.manualLink = url;
-          this.changeDetector.markForCheck();
-        },
-      );
-    } else {
-      this.copiedMessage = false;
-      this.copyFailed = true;
-      this.manualLink = url;
-      this.changeDetector.markForCheck();
-    }
+  dismissManualCopy() {
+    this.shareController.dismissFallback();
+    this.changeDetector.markForCheck();
+  }
+
+  dismissCopiedMessage() {
+    this.shareController.dismissSuccess();
+    this.changeDetector.markForCheck();
   }
 }

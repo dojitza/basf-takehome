@@ -1,55 +1,11 @@
 <main class="product-details-page">
-  <nav class="detail-nav" aria-label="Breadcrumb">
-    <a
-      class="back-link"
-      [routerLink]="['/']"
-      [queryParams]="criteriaQueryParams"
-      [state]="{ warning: hasWarning }"
-    >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-      >
-        <line x1="19" y1="12" x2="5" y2="12" />
-        <polyline points="12 19 5 12 12 5" />
-      </svg>
-      <span>Back to catalogue</span>
-    </a>
-
-    <div class="detail-actions">
-      @if (canShare) {
-        <button
-          pButton
-          severity="secondary"
-          type="button"
-          class="detail-button"
-          (click)="share()"
-        >
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-          >
-            <circle cx="18" cy="5" r="3" />
-            <circle cx="6" cy="12" r="3" />
-            <circle cx="18" cy="19" r="3" />
-            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
-            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-          </svg>
-          <span>Share</span>
-        </button>
-      }
-      <button
-        pButton
-        severity="secondary"
-        type="button"
-        class="detail-button"
-        (click)="copyLink()"
+  @if (product) {
+    <nav class="detail-nav" aria-label="Breadcrumb">
+      <a
+        class="back-link"
+        [routerLink]="['/']"
+        [queryParams]="criteriaQueryParams"
+        [state]="backState"
       >
         <svg
           aria-hidden="true"
@@ -58,32 +14,119 @@
           stroke="currentColor"
           stroke-width="2"
         >
-          <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          <line x1="19" y1="12" x2="5" y2="12" />
+          <polyline points="12 19 5 12 12 5" />
         </svg>
-        <span>Copy link</span>
-      </button>
-    </div>
-  </nav>
+        <span>Back to catalogue</span>
+      </a>
+
+      <div class="detail-actions">
+        @if (canShare) {
+          <button
+            pButton
+            severity="secondary"
+            type="button"
+            class="detail-button"
+            (click)="share()"
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <circle cx="18" cy="5" r="3" />
+              <circle cx="6" cy="12" r="3" />
+              <circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+            <span>Share</span>
+          </button>
+        }
+        <button
+          pButton
+          severity="secondary"
+          type="button"
+          class="detail-button"
+          (click)="copyLink()"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+          </svg>
+          <span>Copy link</span>
+        </button>
+      </div>
+    </nav>
+  }
+
+  @if (hasWarning) {
+    <p class="warning">
+      This link contains invalid or unsupported filters or sort; defaults were
+      used.
+    </p>
+  }
 
   @if (copiedMessage) {
     <div role="status" class="status-banner success">
-      Link copied to clipboard.
+      <span>Link copied to clipboard.</span>
+      <button
+        pButton
+        severity="secondary"
+        [text]="true"
+        type="button"
+        class="status-banner-dismiss"
+        aria-label="Dismiss notification"
+        (click)="dismissCopiedMessage()"
+      >
+        <span aria-hidden="true">✕</span>
+      </button>
     </div>
   }
   @if (copyFailed) {
     <div class="share-fallback">
-      <p class="share-feedback error">
-        Unable to copy link to clipboard. Please copy the link manually:
-      </p>
-      <input
-        pInputText
-        type="text"
-        readonly
-        [value]="manualLink"
-        aria-label="Product link"
-        (focus)="$any($event.target).select()"
-      />
+      <div class="share-fallback-header">
+        <p class="share-feedback error">
+          Unable to copy link to clipboard. Please copy the link manually:
+        </p>
+        <button
+          pButton
+          severity="secondary"
+          [text]="true"
+          type="button"
+          class="share-fallback-dismiss"
+          aria-label="Dismiss manual copy notice"
+          (click)="dismissManualCopy()"
+        >
+          <span aria-hidden="true">✕</span>
+        </button>
+      </div>
+      <div class="share-fallback-row">
+        <input
+          pInputText
+          type="text"
+          readonly
+          [value]="manualLink"
+          aria-label="Product link"
+          (focus)="$any($event.target).select()"
+        />
+        <button
+          pButton
+          severity="secondary"
+          type="button"
+          (click)="dismissManualCopy()"
+        >
+          Dismiss
+        </button>
+      </div>
     </div>
   }
 
@@ -97,13 +140,32 @@
     <div class="product-not-found">
       <h1 #heading tabindex="-1">Product not found</h1>
       <p>The requested product could not be found.</p>
+      <a
+        class="recovery-link"
+        [routerLink]="['/']"
+        [queryParams]="criteriaQueryParams"
+        [state]="backState"
+      >
+        Back to catalogue
+      </a>
     </div>
   }
 
   @if (!loading && error) {
     <div role="alert" class="error">
-      Unable to load product details.
-      <button pButton type="button" (click)="retry()">Retry</button>
+      <h1 #heading tabindex="-1">Unable to load product</h1>
+      <p>Unable to load product details.</p>
+      <div class="error-actions">
+        <button pButton type="button" (click)="retry()">Retry</button>
+        <a
+          class="recovery-link"
+          [routerLink]="['/']"
+          [queryParams]="criteriaQueryParams"
+          [state]="backState"
+        >
+          Back to catalogue
+        </a>
+      </div>
     </div>
   }
 

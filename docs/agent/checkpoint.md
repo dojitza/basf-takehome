@@ -18,4 +18,8 @@ Use Node 22.22.3/npm 10. Root `npm run check` runs lint, format check, Jest and 
 
 Consult dev.log.md for verification evidence and testing-strategy.md for the Playwright workflow. The hardened import and catalogue tests were committed as `0ec7f98`; implementation fixes pass unit, PostgreSQL integration and browser tests. Search is limited to 200 characters; import expects only the known headers and four-digit years. Agreed catalogue rules and remaining limits are in [the catalogue browsing plan](catalogue/catalogue-browsing-plan.md). Additional filter/sort options, recent searches, reviews and performance diagnostics are deferred in TODO.md.
 
-The [product details slice](product-details/product-details-plan.md) (`v0.2.0`) is complete, tagged, and recorded in `docs/human/v0.2.0/v0.2.0.md`. The active slice is [Product Reviews](reviews/reviews-plan.md) (`v0.3.0`), following an 8-stage streamlined delivery workflow. All checks are currently green.
+The [product details slice](product-details/product-details-plan.md) (`v0.2.0`) is complete, tagged, and recorded in `docs/human/v0.2.0/v0.2.0.md`. The active slice is [Product Reviews](reviews/reviews-plan.md) (`v0.3.0`), following an 8-stage streamlined delivery workflow. Phase 1 is complete; architectural choices were discussed during Phase 3, and the [architecture proposal](reviews/architecture-proposal.md) records them. Phase 3 tests are written and await the human-dispatched adversarial review. Feature tests currently fail because reviews are not implemented; see dev.log.md for evidence and limitations.
+
+## Review feature visual direction
+
+The human liked the dedicated mobile review page reference, including its keyboard-open state: [mobile review page](reviews/references/mobile-review-page.png). The earlier bottom drawer was rejected. This is an accepted visual direction, not an agreed feature specification or implemented behavior; agree review requirements and scope before implementation.

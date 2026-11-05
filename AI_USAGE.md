@@ -474,3 +474,59 @@ The human said the generated designs looked good and asked to bank them and make
 - Human direction: prioritize Option A (product reviews) over filter/sort extensions for v0.3.0, collapse the delivery lifecycle from 11 phases down to 8 stages by merging adversarial reviews to directly fix issues and unifying the human taste-test feedback loop, bootstrap this in docs (including `docs/human/v0.3.0/`), and commit to kick off v0.3.0.
 - Agent action: created `docs/human/v0.3.0/v0.3.0.md` and `docs/agent/reviews/reviews-plan.md` with the 8-stage collapsed workflow, updated `TODO.md`, `docs/README.md`, `docs/agent/checkpoint.md`, and `docs/agent/dev.log.md`. No sub-agents were used.
 
+
+## 2026-11-04 — Review feature visual exploration
+
+- Human supplied prompts as inspiration and asked for three creative desktop and mobile review feature ideas using existing references. The agent used ImageGen with the existing product detail screenshots to explore three layouts; these are illustrative proposals, not implemented or agreed behavior. No sub-agents were used.
+- Human selected visual idea 3 for further exploration and requested a mobile review drawer with the touch keyboard open. The agent generated an illustrative reference; form requirements and implementation remain unagreed.
+- Human rejected the mobile drawer design and requested a dedicated review page after discussing alternatives. Generated a mobile page concept, including keyboard-open state; this is a visual exploration and does not settle implementation or review requirements.
+## 2026-11-04 — Phase 1 behavioral analysis (reviews)
+
+- Interactive alignment with human: agreed that 'Write a review' opens a dialog on desktop and full-screen overlay on mobile, submit without rating triggers inline validation error, reviews list uses the catalogue's batch-loading sentinel mechanism with 'Load more', reviews are ordered newest first across all product statuses, and moderation is explicitly out of scope for v0.3.0. Recorded in `docs/agent/reviews/reviews-plan.md`.
+
+
+## 2026-11-05 — Reviews phase sequencing
+
+- Prior state: Phase 1 was complete and Phase 2 architectural design was pending; the planned Phase 3 tests depend on that design.
+- Human direction: start Phase 3 and work interactively by asking questions.
+- Result: begin by clarifying the missing architectural decisions with the human before committing tests to a contract; the agreed test phase remains pending those answers.
+
+- Agent reopened whether reviews remain visible and addable for products missing from a later import, although Phase 1 had already agreed reviews are available across all product statuses. The human corrected this and confirmed both behaviors. The plan now states the missing-from-import case explicitly.
+
+- For a failed review submission, Codex proposed keeping the dialog and entered values intact, showing an error, and allowing retry. The human agreed; the behavior was added to the reviews plan.
+
+- Codex proposed discarding an unfinished review without confirmation when closing the form. The human requested a confirmation prompt instead. The conditions and prompt behavior remain under discussion.
+
+- The human agreed to show a discard confirmation when a rating, name, or comment has been entered, with Keep editing and Discard review actions; a blank form closes without confirmation. Added this behavior to the plan.
+
+- Codex proposed keeping product details usable when reviews fail to load, showing a reviews error with Retry, and allowing the review form to open. The human agreed; added to the plan.
+
+- Codex proposed retaining displayed reviews after a subsequent batch fails, showing an error near the list, and allowing retry. The human agreed; added to the plan.
+
+- Codex proposed using a unique submission ID to prevent duplicate reviews when retrying a submission whose response was lost. The human agreed; added the outcome to the plan.
+
+- Codex presented a choice for edits after an uncertain submission: allow edits as a new submission, risking two reviews, or lock the original until its outcome is resolved. The human chose to lock it. The plan records the choice; recovery and dismissal details remain to be clarified.
+
+- Codex proposed Retry submission and allowing the dialog to close and reopen with the uncertain submission locked during the same visit; confirmed validation rejections unlock the fields. The human agreed; recorded in the plan.
+
+- Codex proposed locking uncertain submissions and then preserving them across reloads and navigation. The human considered this overengineering and directed allowing edits, accepting that an edited submission could duplicate a review if the original succeeded. Removed the lock and pending-recovery requirements from the plan; the previously agreed same-submission retry ID remains.
+
+- The human confirmed keeping the unique submission ID for retries of unchanged reviews while accepting possible duplication after edits.
+
+- The human asked to record the risk of duplicate reviews after editing an uncertain submission as an explicit trade-off for simplicity. Added it to DECISIONS.md, marked agreed but not implemented.
+
+- The human directed staying in Phase 3 while laying out the whole architecture. Codex prepared a proposed data, API, frontend and test architecture for discussion; no phase was marked complete and no application implementation was performed.
+
+- Codex proposed cursor pagination using creation time and review ID to avoid offset shifts when new reviews arrive; the human agreed. Architecture and tests remain under discussion.
+
+- The human agreed to calculate review count and average on every request and asked to mark performance optimization as future work. Updated the architecture proposal and TODO.
+
+- The human agreed to trim optional review text, treat whitespace-only values as empty, and enforce rating and length limits on the API as well as the form. Recorded in the architecture proposal.
+
+- The human agreed to browser-generated UUID submission IDs enforced uniquely by the server: identical retries return the saved review, while reuse with different content or product returns a conflict, including concurrent requests.
+
+- The human agreed to a default review batch size of 10 and server-enforced maximum of 100.
+
+- The human requested writing Phase 3 tests and reporting back, and said they will dispatch an adversarial agent for review. Codex wrote API integration, frontend Jest, and browser tests; no agent was dispatched by Codex and application implementation remains pending.
+
+- The human requested committing the Phase 3 work. Codex committed the review planning and tests in scoped commits, leaving unrelated human-document changes untouched.

@@ -388,3 +388,25 @@ Updated shared fallback styles and both catalogue and product templates to put t
 
 Bootstrapped milestone `v0.3.0` focusing on customer reviews and ratings. Created `docs/human/v0.3.0/v0.3.0.md` with human notes and the agreed 8-stage collapsed delivery workflow, and `docs/agent/reviews/reviews-plan.md`. Updated `TODO.md`, `docs/README.md`, `docs/agent/checkpoint.md`, and `AI_USAGE.md`.
 
+
+## 2026-11-04 — Phase 1 behavioral analysis agreed for v0.3.0
+
+Finalized Phase 1 scope with the human:
+- Write review presented as a dialog on desktop and full-screen overlay with `← Back to product` on mobile.
+- Rating required (1-5), inline validation on submit without rating; reviewer name and comment optional.
+- Reviews list uses the same batch loading mechanism (sentinel + Load more fallback) as the catalogue, ordered strictly newest first.
+- Allowed across all product statuses; moderation and authentication explicitly documented as out of scope.
+- Recorded spec in `docs/agent/reviews/reviews-plan.md` and updated checkpoint.
+
+
+## 2026-11-05 — Reviews test preparation
+
+Clarified failure and retry behavior in the reviews plan and recorded the agreed duplicate-review trade-off in DECISIONS.md. These are proposed tests and agreed behavior, not an implementation or test result. No tests run for documentation-only changes.
+
+- Prepared a proposed reviews architecture for discussion during Phase 3; no application implementation or tests performed.
+
+## 2026-11-05 — Phase 3 review tests
+
+Added `apps/api/test/reviews.integration-spec.ts`, `apps/web/src/app/reviews.spec.ts` and `tests/e2e/reviews.spec.ts`; no review application code was implemented. The API tests use a provisional `{items, nextCursor, summary: {count, average}}` response adapter, and browser selectors propose accessible form roles and names; these details need review. API tests cover validation, pagination, aggregate, idempotent submission and import preservation. Frontend and browser tests cover representative empty, error, form and submission behaviors.
+
+Verification: focused API integration run against isolated PostgreSQL: 22 failed, all feature tests; focused frontend Jest: 5 failed; isolated desktop/mobile Playwright: 8 failed. The absent reviews route or write action prevents reaching the intended assertions; red results do not establish that later assertions are correct. ESLint passed on the three test files and Prettier formatted them. No full-suite green claim. The human will dispatch an adversarial reviewer; timestamp tie ordering, edited submission retry, stale request handling, and deeper accessibility remain particular areas to examine.

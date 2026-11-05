@@ -5,4 +5,5 @@ node_modules
 .git
 .env
 .env.*
+apps/web/src/primeng-license.local.ts
 coverage

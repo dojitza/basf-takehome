@@ -76,3 +76,7 @@ The human directed Codex to proceed with Phase 5 and implement the review featur
 The human reported that “Copy link to results” overflowed on mobile. Codex recommended stacking the sharing buttons or shortening the label; the human suggested “Copy results,” and Codex noted that it could imply copying the products rather than a URL. The human chose “Copy link” on mobile. Codex retained the full label on wider screens.
 
 The human then changed the mobile label to “Link to results”; Codex updated it while retaining the wider-screen wording.
+
+## 2026-11-05 — Railway demo
+
+The human requested a private GitHub repository and a ready-to-use Railway demo, then explicitly directed Codex to commit the existing working changes as a deployment test and add the live URL to the README. Codex used the GitHub connection, SSH Git and Railway tools to prepare the deployment.

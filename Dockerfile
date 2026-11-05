@@ -31,3 +31,8 @@ FROM nginx:1.28-alpine AS web
 COPY apps/web/nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/apps/web/dist/web/browser /usr/share/nginx/html
 EXPOSE 80
+
+FROM build AS railway
+ENV NODE_ENV=production SERVE_WEB=true IMPORT_LOG_DIR=/tmp/product-finder-import
+EXPOSE 3000
+CMD ["node", "apps/api/dist/main.js"]

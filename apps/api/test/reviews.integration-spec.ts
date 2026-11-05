@@ -137,19 +137,14 @@ describe('product reviews HTTP and PostgreSQL contract', () => {
       ),
     ).rejects.toMatchObject({ code: '23503' });
 
-    // Composite index on (productId, createdAt, id) must exist for cursor pagination.
+    // The pagination index orders both cursor columns descending.
     const indexes = await pool.query<{ indexdef: string }>(
       `SELECT indexdef FROM pg_indexes WHERE schemaname = $1 AND tablename = 'Review'`,
       [schema],
     );
-    expect(
-      indexes.rows.some(
-        (row) =>
-          row.indexdef.includes('"productId"') &&
-          row.indexdef.includes('"createdAt"') &&
-          row.indexdef.includes('id'),
-      ),
-    ).toBe(true);
+    expect(indexes.rows.map((row) => row.indexdef)).toContainEqual(
+      expect.stringMatching(/\("productId", "createdAt" DESC, id DESC\)/),
+    );
   });
 
   it('returns an empty summary and list for a product with no reviews, supporting uppercase UUIDs', async () => {

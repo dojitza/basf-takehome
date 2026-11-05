@@ -11,4 +11,4 @@ CREATE TABLE "Review" (
   CONSTRAINT "Review_productId_fkey" FOREIGN KEY ("productId") REFERENCES "Product"("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 CREATE UNIQUE INDEX "Review_submissionId_key" ON "Review"("submissionId");
-CREATE INDEX "Review_productId_createdAt_id_idx" ON "Review"("productId", "createdAt", "id");
+CREATE INDEX "Review_productId_createdAt_id_idx" ON "Review"("productId", "createdAt" DESC, "id" DESC);

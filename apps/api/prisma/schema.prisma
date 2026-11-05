@@ -42,5 +42,5 @@ model Review {
   createdAt    DateTime @default(now()) @db.Timestamptz(3)
   submissionId String  @unique
 
-  @@index([productId, createdAt, id])
+  @@index([productId, createdAt(sort: Desc), id(sort: Desc)])
 }

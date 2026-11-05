@@ -18,7 +18,7 @@ Use Node 22.22.3/npm 10. Root `npm run check` runs lint, format check, Jest and 
 
 Consult dev.log.md for verification evidence and testing-strategy.md for the Playwright workflow. The hardened import and catalogue tests were committed as `0ec7f98`; implementation fixes pass unit, PostgreSQL integration and browser tests. Search is limited to 200 characters; import expects only the known headers and four-digit years. Agreed catalogue rules and remaining limits are in [the catalogue browsing plan](catalogue/catalogue-browsing-plan.md). Additional filter/sort options, recent searches, reviews and performance diagnostics are deferred in TODO.md.
 
-The [product details slice](product-details/product-details-plan.md) (`v0.2.0`) is complete, tagged, and recorded in `docs/human/v0.2.0/v0.2.0.md`. The active slice is [Product Reviews](reviews/reviews-plan.md) (`v0.3.0`), following an 8-stage streamlined delivery workflow. Phases 1 through 6 are complete; architectural choices are recorded in the [architecture proposal](reviews/architecture-proposal.md), and the test suite and implementation have been adversarially reviewed. Phase 7 is the human taste test. See dev.log.md for verification and review findings.
+The [product details slice](product-details/product-details-plan.md) (`v0.2.0`) is complete, tagged, and recorded in `docs/human/v0.2.0/v0.2.0.md`. The [Product Reviews](reviews/reviews-plan.md) (`v0.3.0`) slice has completed all 8 stages of delivery, including the Stage 8 final adversarial audit and feature review. Architectural choices are recorded in [architecture-proposal.md](reviews/architecture-proposal.md) and DECISIONS.md. See dev.log.md for full verification evidence across all test suites.
 
 ## Review feature visual direction
 

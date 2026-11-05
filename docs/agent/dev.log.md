@@ -475,3 +475,15 @@ Verification:
 - Shortened the catalogue copy action to “Copy link” at widths up to 600px; wider screens retain “Copy link to results”.
 - Frontend build passed (with the existing initial bundle budget warning); all 74 frontend Jest tests passed. A headless Chromium layout check at 320px, 390px and 800px confirmed the respective labels and no horizontal button overflow. At 320px, “Share results” wraps to two lines; this change does not address that separate layout behavior. Human review is pending.
 - Follow-up: the human changed the mobile wording to “Link to results”. The frontend build and all 74 frontend tests passed again; the updated label has not had a separate browser layout review.
+
+## 2026-11-05 — Phase 8 final review and audit of the complete reviews feature
+
+Conducted the final review pass of the entire product reviews feature (v0.3.0) across data layer, backend API, frontend components, and cross-slice interactions:
+- Audited PostgreSQL schema and migration `20261105000000_add_reviews`: checked rating range constraint (`CHECK (rating BETWEEN 1 AND 5)`), composite index on `("productId", "createdAt" DESC, "id" DESC)` for cursor pagination, and unique constraint on `submissionId` for idempotency.
+- Audited API controller (`ReviewsController`): verified UUID parameter and cursor parsing, keyset pagination with tie-breaker logic, aggregate count/avg computation, strict payload boundary validation, and duplicate/conflict handling (`P2002` yielding idempotent retry on exact match and 409 Conflict on payload mismatch).
+- Audited frontend component and dialog UX (`ReviewsComponent`, `reviews.html`, `reviews.scss`): verified responsive design (centered modal on desktop, full-screen sheet with back-navigation on mobile), keyboard focus trap for active modal/confirmation overlays, escape and backdrop dismissal, dirty-draft confirmation guards, star rating semantics and WCAG 1.4.1 non-color distinction, in-flight input disabling, and state reset on product ID changes.
+- Verification evidence:
+  - `npm run check`: lint, Prettier, unit tests, and production builds pass cleanly.
+  - Unit tests: 69 API tests + 74 frontend Jest tests pass.
+  - PostgreSQL integration tests: 126 tests pass in `npm run test:integration`.
+  - Browser e2e tests: 45 Playwright tests pass in `npm run test:e2e` across desktop and mobile viewports.

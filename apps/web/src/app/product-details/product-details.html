@@ -218,6 +218,9 @@
         </div>
       </dl>
     </article>
-    <app-reviews [productId]="product.id" />
+    <app-reviews
+      [productId]="product.id"
+      [productName]="product.name || product.sku"
+    />
   }
 </main>

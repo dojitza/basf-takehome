@@ -1,6 +1,6 @@
 # Product reviews delivery plan (v0.3.0)
 
-Status: Phase 5 implementation and automated verification are complete; main architectural choices are recorded in the [architecture proposal](architecture-proposal.md). See the development log for verification and remaining review.
+Status: Phase 6 adversarial code review and verification are complete; main architectural choices are recorded in the [architecture proposal](architecture-proposal.md). Ready for Phase 7 (human taste test). See the development log for verification and findings.
 
 ## Workflow Stages
 
@@ -9,7 +9,7 @@ Status: Phase 5 implementation and automated verification are complete; main arc
 - [x] 3. Tests — LLM builds the test suite from the behavioral and architectural spec
 - [x] 4. Test review and hardening — an adversarial pass reviews, identifies gaps, and directly hardens the tests
 - [x] 5. Coding — LLM implements the feature to pass the hardened test suite while adhering to the architectural spec
-- [ ] 6. Coding review & direct refinement — an adversarial pass reviews against architectural spec and directly resolves issues
+- [x] 6. Coding review & direct refinement — an adversarial pass reviews against architectural spec and directly resolves issues
 - [ ] 7. Human taste test & iterative tuning — human tests the live app and LLM addresses feedback in a tight loop until satisfied
 - [ ] 8. Final adversarial audit & polish — final adversarial check for gaps/edge cases, direct fixes, and sanity check by human
 

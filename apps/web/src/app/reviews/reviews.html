@@ -6,21 +6,38 @@
     </button>
   </div>
   @if (success) {
-    <p role="status" class="success">
-      Thank you! Your review has been submitted
-    </p>
+    <div role="status" class="status-banner success">
+      <span>Thank you! Your review has been submitted</span>
+      <button
+        type="button"
+        class="status-banner-dismiss"
+        aria-label="Dismiss notification"
+        (click)="dismissSuccess()"
+      >
+        <span aria-hidden="true">✕</span>
+      </button>
+    </div>
   }
   @if (summary && summary.count > 0) {
     <div class="summary">
-      <strong>{{ summary.average | number: '1.1-1' }}</strong
-      ><span class="stars" aria-hidden="true">
+      <strong>{{ summary.average | number: '1.1-1' }}</strong>
+      <span
+        class="stars"
+        role="img"
+        [attr.aria-label]="
+          (summary.average | number: '1.1-1') + ' out of 5 stars'
+        "
+      >
         @for (star of stars; track star) {
-          <span [class.muted]="star > roundedAverage">★</span>
-        }</span
-      ><span
-        >{{ summary.count }}
-        {{ summary.count === 1 ? 'review' : 'reviews' }}&nbsp;
+          <span aria-hidden="true" [class.muted]="star > roundedAverage">{{
+            star <= roundedAverage ? '★' : '☆'
+          }}</span>
+        }
       </span>
+      <span class="summary-count"
+        >({{ summary.count }}
+        {{ summary.count === 1 ? 'review' : 'reviews' }})</span
+      >
     </div>
   } @else if (summary && !error) {
     <p class="empty">
@@ -31,12 +48,20 @@
   @for (review of items; track review.id) {
     <article class="review">
       <div class="review-top">
-        <strong>{{ review.reviewerName || 'Anonymous customer' }}</strong
-        ><time>{{ review.createdAt | date: 'mediumDate' }}</time>
+        <strong>{{ review.reviewerName || 'Anonymous customer' }}</strong>
+        <time [attr.datetime]="review.createdAt">{{
+          review.createdAt | date: 'mediumDate'
+        }}</time>
       </div>
-      <div class="stars" [attr.aria-label]="review.rating + ' out of 5 stars'">
-        {{ '★★★★★'.slice(0, review.rating)
-        }}<span class="muted">{{ '★★★★★'.slice(review.rating) }}</span>
+      <div
+        class="stars"
+        role="img"
+        [attr.aria-label]="review.rating + ' out of 5 stars'"
+      >
+        <span aria-hidden="true"
+          >{{ '★★★★★'.slice(0, review.rating)
+          }}<span class="muted">{{ '☆☆☆☆☆'.slice(review.rating) }}</span></span
+        >
       </div>
       @if (review.comment) {
         <p>{{ review.comment }}</p>
@@ -44,23 +69,30 @@
     </article>
   }
   @if (loading) {
-    <p role="status">Loading reviews…</p>
+    <p role="status" class="loading-status">Loading reviews…</p>
   }
   @if (error) {
-    <div role="alert">
+    <div role="alert" class="load-error">
       <p>Unable to load reviews.</p>
       <button type="button" (click)="retry()">Retry</button>
     </div>
   }
   @if (cursor && !error) {
-    <div #sentinel></div>
-    <button type="button" [disabled]="loading" (click)="load(false)">
-      Load more
-    </button>
+    <div class="load-area">
+      <div #sentinel aria-hidden="true"></div>
+      <button type="button" [disabled]="loading" (click)="load(false)">
+        Load more
+      </button>
+    </div>
   }
 </section>
 @if (open) {
-  <div class="overlay" tabindex="-1" (keydown)="keydown($event)">
+  <div
+    class="overlay"
+    tabindex="-1"
+    (click)="onBackdropClick($event)"
+    (keydown)="keydown($event)"
+  >
     <div
       #dialog
       class="dialog"
@@ -77,9 +109,18 @@
       >
         ← Back to product
       </button>
-      <h2 id="review-dialog-title">Write a review</h2>
+      <div class="dialog-header">
+        <h2 id="review-dialog-title">Write a review</h2>
+        @if (productName) {
+          <p class="dialog-product-name">{{ productName }}</p>
+        }
+      </div>
       <form (submit)="$event.preventDefault(); submit()">
-        <fieldset [disabled]="submitting">
+        <fieldset
+          [disabled]="submitting"
+          [attr.aria-invalid]="ratingError ? 'true' : null"
+          [attr.aria-describedby]="ratingError ? 'rating-error' : null"
+        >
           <legend>Your rating <span aria-hidden="true">*</span></legend>
           <div class="rating">
             @for (star of stars; track star) {
@@ -91,36 +132,40 @@
                   [checked]="rating === star"
                   [attr.aria-label]="star + (star === 1 ? ' star' : ' stars')"
                   (change)="setRating(star)"
-                /><span [class.selected]="star <= rating" aria-hidden="true"
-                  >★</span
-                ></label
+                /><span [class.selected]="star <= rating" aria-hidden="true">{{
+                  star <= rating ? '★' : '☆'
+                }}</span></label
               >
             }
           </div>
         </fieldset>
         @if (ratingError) {
-          <p class="error" role="alert">
+          <p id="rating-error" class="error" role="alert">
             Please select a rating between 1 and 5 stars
           </p>
         }
-        <label for="review-name">Your name (optional)</label
-        ><input
-          id="review-name"
-          placeholder="Alex M."
-          maxlength="100"
-          [disabled]="submitting"
-          [value]="name"
-          (input)="name = $any($event.target).value"
-        />
-        <label for="review-comment">Your experience (optional)</label
-        ><textarea
-          id="review-comment"
-          maxlength="1000"
-          rows="5"
-          [disabled]="submitting"
-          [value]="comment"
-          (input)="comment = $any($event.target).value"
-        ></textarea>
+        <div class="field">
+          <label for="review-name">Your name (optional)</label>
+          <input
+            id="review-name"
+            placeholder="Alex M."
+            maxlength="100"
+            [disabled]="submitting"
+            [value]="name"
+            (input)="name = $any($event.target).value"
+          />
+        </div>
+        <div class="field">
+          <label for="review-comment">Your experience (optional)</label>
+          <textarea
+            id="review-comment"
+            maxlength="1000"
+            rows="5"
+            [disabled]="submitting"
+            [value]="comment"
+            (input)="comment = $any($event.target).value"
+          ></textarea>
+        </div>
         @if (submitError) {
           <p class="error" role="alert">
             Unable to submit your review. Please try again.
@@ -142,12 +187,17 @@
         >
           <h2 id="discard-title">Discard your review?</h2>
           <p>Your draft will be lost.</p>
-          <button
-            type="button"
-            (click)="confirming = false; focusTargetForForm()"
-          >
-            Keep editing</button
-          ><button type="button" (click)="discard()">Discard review</button>
+          <div class="confirmation-actions">
+            <button
+              type="button"
+              (click)="confirming = false; focusTargetForForm()"
+            >
+              Keep editing
+            </button>
+            <button type="button" class="primary" (click)="discard()">
+              Discard review
+            </button>
+          </div>
         </div>
       </div>
     }

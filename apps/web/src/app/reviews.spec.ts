@@ -248,12 +248,18 @@ describe('reviews on product details (v0.3.0)', () => {
     await update();
 
     expect(text()).toContain('4.3');
-    expect(text()).toMatch(/14\s*reviews/i);
+    expect(text()).toContain('(14 reviews)');
     expect(text()).toContain('Anonymous customer');
     expect(text()).toContain('Helpful <script>window.__xss = 1</script>');
     expect(text()).toContain('<img src=x onerror=alert(1)>');
     expect(root().querySelector('img[onerror]')).toBeNull();
     expect(text()).not.toContain('00000000-0000-4000-8000-000000000901');
+    expect(
+      root().querySelector('[role="img"][aria-label="5 out of 5 stars"]'),
+    ).not.toBeNull();
+    expect(
+      root().querySelector('time[datetime="2026-01-02T00:00:00.000Z"]'),
+    ).not.toBeNull();
   });
 
   it('remains available for reading and writing on absent and discontinued products', async () => {
@@ -385,7 +391,26 @@ describe('reviews on product details (v0.3.0)', () => {
     const writeBtn = button(/write a review/i);
     writeBtn.click();
     await update();
-    expect(findDialog()).not.toBeNull();
+    const dialog = findDialog();
+    expect(dialog).not.toBeNull();
+    expect(dialog?.textContent).toContain('Alpha');
+
+    // If focus is placed on the overlay outside dialog controls, Tab pulls focus inside the dialog.
+    const overlay = root().querySelector<HTMLElement>('.overlay')!;
+    overlay.focus();
+    overlay.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Tab',
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    expect(dialog?.contains(document.activeElement)).toBe(true);
+
+    // Whitespace-only optional inputs are treated as blank and close without confirmation.
+    fillControl(nameInput(), '   ');
+    fillControl(commentInput(), '  \n ');
+    await update();
 
     dismissDialog();
     await update();

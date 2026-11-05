@@ -6,8 +6,10 @@ import {
   Component,
   ElementRef,
   Input,
+  OnChanges,
   OnDestroy,
   OnInit,
+  SimpleChanges,
   ViewChild,
   inject,
 } from '@angular/core';
@@ -31,8 +33,11 @@ type Page = {
   templateUrl: './reviews.html',
   styleUrl: './reviews.scss',
 })
-export class ReviewsComponent implements OnInit, OnDestroy, AfterViewChecked {
+export class ReviewsComponent
+  implements OnInit, OnChanges, OnDestroy, AfterViewChecked
+{
   @Input({ required: true }) productId = '';
+  @Input() productName = '';
   @ViewChild('trigger') trigger?: ElementRef<HTMLButtonElement>;
   @ViewChild('dialog') dialog?: ElementRef<HTMLElement>;
   @ViewChild('confirmation') confirmation?: ElementRef<HTMLElement>;
@@ -41,11 +46,15 @@ export class ReviewsComponent implements OnInit, OnDestroy, AfterViewChecked {
   private cd = inject(ChangeDetectorRef);
   private requests = new Subscription();
   private readRequest?: Subscription;
+  private submitRequest?: Subscription;
   private observer?: IntersectionObserver;
   private observed?: HTMLElement;
   private focusTarget: 'dialog' | 'confirmation' | null = null;
   private previousPayload = '';
   private submissionId = '';
+  private loadedProductId = '';
+  private readGeneration = 0;
+  private submitGeneration = 0;
   items: Review[] = [];
   summary: Page['summary'] | null = null;
   cursor: string | null = null;
@@ -65,11 +74,48 @@ export class ReviewsComponent implements OnInit, OnDestroy, AfterViewChecked {
     return Math.round(this.summary?.average ?? 0);
   }
   ngOnInit() {
-    this.load(true);
+    if (this.productId && this.loadedProductId !== this.productId) {
+      this.resetAndLoad();
+    }
+  }
+  ngOnChanges(changes: SimpleChanges) {
+    if (
+      'productId' in changes &&
+      this.productId &&
+      this.loadedProductId !== this.productId
+    ) {
+      this.resetAndLoad();
+    }
   }
   ngOnDestroy() {
+    this.readGeneration++;
+    this.submitGeneration++;
     this.requests.unsubscribe();
     this.observer?.disconnect();
+  }
+  private resetAndLoad() {
+    this.loadedProductId = this.productId;
+    this.readGeneration++;
+    this.submitGeneration++;
+    this.readRequest?.unsubscribe();
+    this.submitRequest?.unsubscribe();
+    this.items = [];
+    this.summary = null;
+    this.cursor = null;
+    this.loading = false;
+    this.error = false;
+    this.open = false;
+    this.confirming = false;
+    this.submitting = false;
+    this.rating = 0;
+    this.name = '';
+    this.comment = '';
+    this.ratingError = false;
+    this.submitError = false;
+    this.success = false;
+    this.previousPayload = '';
+    this.submissionId = '';
+    this.load(true);
   }
   ngAfterViewChecked() {
     const focus =
@@ -85,16 +131,20 @@ export class ReviewsComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.observer?.disconnect();
       this.observed = element;
       if (element && typeof IntersectionObserver !== 'undefined') {
-        this.observer = new IntersectionObserver((entries) => {
-          if (entries.some((e) => e.isIntersecting) && !this.error)
-            this.load(false);
-        });
+        this.observer = new IntersectionObserver(
+          (entries) => {
+            if (entries.some((e) => e.isIntersecting) && !this.error)
+              this.load(false);
+          },
+          { rootMargin: '100px' },
+        );
         this.observer.observe(element);
       }
     }
   }
   load(first: boolean) {
     if (this.loading || (!first && !this.cursor)) return;
+    const generation = ++this.readGeneration;
     this.loading = true;
     this.error = false;
     const params =
@@ -105,6 +155,7 @@ export class ReviewsComponent implements OnInit, OnDestroy, AfterViewChecked {
       .get<Page>(`/api/products/${this.productId}/reviews`, { params })
       .subscribe({
         next: (page) => {
+          if (generation !== this.readGeneration) return;
           this.items = first ? page.items : [...this.items, ...page.items];
           this.summary = page.summary;
           this.cursor = page.nextCursor;
@@ -112,6 +163,7 @@ export class ReviewsComponent implements OnInit, OnDestroy, AfterViewChecked {
           this.cd.markForCheck();
         },
         error: () => {
+          if (generation !== this.readGeneration) return;
           this.loading = false;
           this.error = true;
           this.cd.markForCheck();
@@ -122,10 +174,23 @@ export class ReviewsComponent implements OnInit, OnDestroy, AfterViewChecked {
   retry() {
     this.load(this.summary === null);
   }
+  dismissSuccess() {
+    this.success = false;
+    this.trigger?.nativeElement.focus();
+  }
   show() {
     this.success = false;
     this.open = true;
     this.focusTarget = 'dialog';
+  }
+  onBackdropClick(event: MouseEvent) {
+    const target = event.target as HTMLElement | null;
+    if (
+      target === event.currentTarget ||
+      target?.classList.contains('confirmation-overlay')
+    ) {
+      this.close();
+    }
   }
   close() {
     if (this.submitting) return;
@@ -134,7 +199,7 @@ export class ReviewsComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.focusTarget = 'dialog';
       return;
     }
-    if (this.rating || this.name || this.comment) {
+    if (this.rating || this.name.trim() || this.comment.trim()) {
       this.confirming = true;
       this.focusTarget = 'confirmation';
     } else this.discard();
@@ -174,37 +239,39 @@ export class ReviewsComponent implements OnInit, OnDestroy, AfterViewChecked {
       this.submissionId = crypto.randomUUID();
       this.previousPayload = fingerprint;
     }
+    const generation = ++this.submitGeneration;
     this.submitting = true;
     this.submitError = false;
     // Disable the controls before sending so a fast interaction cannot edit
     // a draft while its previous values are already in flight.
     this.cd.detectChanges();
-    this.requests.add(
-      this.http
-        .post(`/api/products/${this.productId}/reviews`, {
-          submissionId: this.submissionId,
-          ...data,
-        })
-        .subscribe({
-          next: () => {
-            this.submitting = false;
-            this.discard();
-            this.success = true;
-            this.readRequest?.unsubscribe();
-            this.loading = false;
-            this.summary = null;
-            this.cursor = null;
-            this.items = [];
-            this.load(true);
-            this.cd.markForCheck();
-          },
-          error: () => {
-            this.submitting = false;
-            this.submitError = true;
-            this.cd.markForCheck();
-          },
-        }),
-    );
+    this.submitRequest = this.http
+      .post(`/api/products/${this.productId}/reviews`, {
+        submissionId: this.submissionId,
+        ...data,
+      })
+      .subscribe({
+        next: () => {
+          if (generation !== this.submitGeneration) return;
+          this.submitting = false;
+          this.discard();
+          this.success = true;
+          this.readRequest?.unsubscribe();
+          this.loading = false;
+          this.summary = null;
+          this.cursor = null;
+          this.items = [];
+          this.load(true);
+          this.cd.markForCheck();
+        },
+        error: () => {
+          if (generation !== this.submitGeneration) return;
+          this.submitting = false;
+          this.submitError = true;
+          this.cd.markForCheck();
+        },
+      });
+    this.requests.add(this.submitRequest);
   }
   keydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
@@ -225,10 +292,14 @@ export class ReviewsComponent implements OnInit, OnDestroy, AfterViewChecked {
     if (!controls.length) return;
     const first = controls[0];
     const last = controls[controls.length - 1];
-    if (event.shiftKey && document.activeElement === first) {
+    const active = document.activeElement as HTMLElement | null;
+    if (!active || !container?.contains(active)) {
+      event.preventDefault();
+      (event.shiftKey ? last : first).focus();
+    } else if (event.shiftKey && active === first) {
       event.preventDefault();
       last.focus();
-    } else if (!event.shiftKey && document.activeElement === last) {
+    } else if (!event.shiftKey && active === last) {
       event.preventDefault();
       first.focus();
     }

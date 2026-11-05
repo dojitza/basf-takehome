@@ -2,7 +2,7 @@
 
 Original brief: [ASSIGNMENT.md](ASSIGNMENT.md).
 
-- **Live preview:** [Placeholder — add the URL if deployed]
+- **Live preview:** [Product Finder on Railway](https://app-production-323f.up.railway.app)
 - **Video overview:** https://www.loom.com/share/5fc55e5ff7e945439bbfb0f472926bc1
 
 |                                                   Desktop product finder                                                    |                                                   Mobile product finder                                                   |

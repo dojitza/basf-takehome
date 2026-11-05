@@ -491,3 +491,7 @@ Conducted the final review pass of the entire product reviews feature (v0.3.0) a
   - Unit tests: 69 API tests + 74 frontend Jest tests pass.
   - PostgreSQL integration tests: 126 tests pass in `npm run test:integration`.
   - Browser e2e tests: 45 Playwright tests pass in `npm run test:e2e` across desktop and mobile viewports.
+
+## 2026-11-05 — Railway demo
+
+Created a private GitHub repository and Railway app and PostgreSQL services with a persistent volume. The app serves the frontend and API from one origin; a pre-deploy step applies migrations and imports the supplied catalogue only if it is empty. The first deployment exposed a missing database preparation command; after correcting its configuration, Railway applied both migrations and imported 200 products. Browser checks at 1280px and 390px loaded the catalogue and opened and reloaded a product detail URL. The container build passed with the existing frontend bundle budget warning.

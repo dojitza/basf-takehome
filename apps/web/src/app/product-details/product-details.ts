@@ -21,6 +21,7 @@ import {
   parseCriteria,
   statusSeverity,
 } from '../criteria';
+import { ReviewsComponent } from '../reviews/reviews';
 import { ShareController } from '../sharing';
 
 export type ProductDetail = {
@@ -40,7 +41,13 @@ export type ProductDetail = {
 
 @Component({
   selector: 'app-product-details',
-  imports: [RouterLink, ButtonModule, InputTextModule, TagModule],
+  imports: [
+    RouterLink,
+    ButtonModule,
+    InputTextModule,
+    TagModule,
+    ReviewsComponent,
+  ],
   templateUrl: './product-details.html',
   styleUrl: './product-details.scss',
 })

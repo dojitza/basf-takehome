@@ -1,6 +1,6 @@
 # Product reviews architecture proposal
 
-Status: proposed for discussion; cursor pagination agreed. Not implemented or verified. Behavioral agreements and workflow are in [the reviews plan](reviews-plan.md).
+Status: agreed architecture; implementation and verification are recorded in the development log. Behavioral agreements and workflow are in [the reviews plan](reviews-plan.md).
 
 ## Data and import
 

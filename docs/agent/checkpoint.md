@@ -4,7 +4,7 @@
 
 The bootstrap uses PrimeNG Community; the catalogue import, catalogue browsing, and product details/sharing/navigation (`v0.2.0`) slices are implemented and verified. The repository has npm workspaces for Angular 22 (`apps/web`) and NestJS 12 ESM (`apps/api`), Prisma 7.10.1, PostgreSQL Compose, Jest in both apps, ESLint/Prettier and CI configuration. Root README contains run/check instructions; DECISIONS.md describes foundation choices and outstanding domain decisions. ASSIGNMENT.md and data/products.csv are preserved.
 
-The shell and readiness endpoint are infrastructure only. The import slice adds a Product model, migration and manual complete-snapshot seed. The products browsing and product details (`GET /api/products/:id`, `/products/:id`) API and UI exist; the reviews API/UI and review model do not.
+The shell and readiness endpoint are infrastructure only. The import slice adds a Product model, migration and manual complete-snapshot seed. The products browsing and product details (`GET /api/products/:id`, `/products/:id`) API and UI exist; the reviews API/UI and review model are implemented; adversarial code review and human review are pending.
 
 ## Working process and configuration
 
@@ -18,7 +18,7 @@ Use Node 22.22.3/npm 10. Root `npm run check` runs lint, format check, Jest and 
 
 Consult dev.log.md for verification evidence and testing-strategy.md for the Playwright workflow. The hardened import and catalogue tests were committed as `0ec7f98`; implementation fixes pass unit, PostgreSQL integration and browser tests. Search is limited to 200 characters; import expects only the known headers and four-digit years. Agreed catalogue rules and remaining limits are in [the catalogue browsing plan](catalogue/catalogue-browsing-plan.md). Additional filter/sort options, recent searches, reviews and performance diagnostics are deferred in TODO.md.
 
-The [product details slice](product-details/product-details-plan.md) (`v0.2.0`) is complete, tagged, and recorded in `docs/human/v0.2.0/v0.2.0.md`. The active slice is [Product Reviews](reviews/reviews-plan.md) (`v0.3.0`), following an 8-stage streamlined delivery workflow. Phase 1 is complete; architectural choices were discussed during Phase 3, and the [architecture proposal](reviews/architecture-proposal.md) records them. Phase 3 tests are written and await the human-dispatched adversarial review. Feature tests currently fail because reviews are not implemented; see dev.log.md for evidence and limitations.
+The [product details slice](product-details/product-details-plan.md) (`v0.2.0`) is complete, tagged, and recorded in `docs/human/v0.2.0/v0.2.0.md`. The active slice is [Product Reviews](reviews/reviews-plan.md) (`v0.3.0`), following an 8-stage streamlined delivery workflow. Phases 1 through 5 are complete; architectural choices are recorded in the [architecture proposal](reviews/architecture-proposal.md), and the test suite has been adversarially reviewed and hardened in Phase 4 (`apps/api/test/reviews.integration-spec.ts`, `apps/web/src/app/reviews.spec.ts`, `tests/e2e/reviews.spec.ts`). Phase 6 (adversarial code review and refinement) is next; Phase 7 is the human taste test. See dev.log.md for verification and limitations.
 
 ## Review feature visual direction
 

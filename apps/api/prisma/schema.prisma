@@ -29,4 +29,18 @@ model Product {
   createdAt             DateTime      @default(now()) @db.Timestamptz(3)
   updatedAt             DateTime      @updatedAt @db.Timestamptz(3)
   lastImportedAt        DateTime      @db.Timestamptz(3)
+  reviews               Review[]
+}
+
+model Review {
+  id           String   @id @default(uuid())
+  productId    String
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  rating       Int
+  reviewerName String?  @db.VarChar(100)
+  comment      String?  @db.VarChar(1000)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  submissionId String  @unique
+
+  @@index([productId, createdAt, id])
 }

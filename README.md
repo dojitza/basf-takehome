@@ -4,7 +4,7 @@ Full-stack take-home assignment. Original brief: [ASSIGNMENT.md](ASSIGNMENT.md).
 
 ## Current scope
 
-The bootstrap includes an Angular/SCSS/PrimeNG shell, a NestJS API with PostgreSQL readiness through Prisma, Docker Compose, Jest, linting and formatting. The product migration and manual CSV snapshot import are implemented. Catalogue browsing supports search, status and application-area filters, sorting, shareable URLs and incremental loading. Dedicated product detail pages (`/products/:id`), whole-row catalogue navigation, carried criteria on return, and native/clipboard link sharing with manual-copy fallback are implemented. Product reviews are not implemented yet. The complete assignment is not finished.
+The bootstrap includes an Angular/SCSS/PrimeNG shell, a NestJS API with PostgreSQL readiness through Prisma, Docker Compose, Jest, linting and formatting. The product migration and manual CSV snapshot import are implemented. Catalogue browsing supports search, status and application-area filters, sorting, shareable URLs and incremental loading. Dedicated product detail pages (`/products/:id`), whole-row catalogue navigation, carried criteria on return, and native/clipboard link sharing with manual-copy fallback are implemented. Product reviews can be read and submitted, including for unavailable products; adversarial code review and human review are pending. The complete assignment is not finished.
 
 ## Prerequisites
 

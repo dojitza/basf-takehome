@@ -1,0 +1,155 @@
+<section class="reviews" aria-labelledby="reviews-heading">
+  <div class="reviews-heading">
+    <h2 id="reviews-heading">Customer reviews</h2>
+    <button #trigger type="button" class="primary" (click)="show()">
+      Write a review
+    </button>
+  </div>
+  @if (success) {
+    <p role="status" class="success">
+      Thank you! Your review has been submitted
+    </p>
+  }
+  @if (summary && summary.count > 0) {
+    <div class="summary">
+      <strong>{{ summary.average | number: '1.1-1' }}</strong
+      ><span class="stars" aria-hidden="true">
+        @for (star of stars; track star) {
+          <span [class.muted]="star > roundedAverage">★</span>
+        }</span
+      ><span
+        >{{ summary.count }}
+        {{ summary.count === 1 ? 'review' : 'reviews' }}&nbsp;
+      </span>
+    </div>
+  } @else if (summary && !error) {
+    <p class="empty">
+      No customer reviews yet. Be the first to share your experience with this
+      product.
+    </p>
+  }
+  @for (review of items; track review.id) {
+    <article class="review">
+      <div class="review-top">
+        <strong>{{ review.reviewerName || 'Anonymous customer' }}</strong
+        ><time>{{ review.createdAt | date: 'mediumDate' }}</time>
+      </div>
+      <div class="stars" [attr.aria-label]="review.rating + ' out of 5 stars'">
+        {{ '★★★★★'.slice(0, review.rating)
+        }}<span class="muted">{{ '★★★★★'.slice(review.rating) }}</span>
+      </div>
+      @if (review.comment) {
+        <p>{{ review.comment }}</p>
+      }
+    </article>
+  }
+  @if (loading) {
+    <p role="status">Loading reviews…</p>
+  }
+  @if (error) {
+    <div role="alert">
+      <p>Unable to load reviews.</p>
+      <button type="button" (click)="retry()">Retry</button>
+    </div>
+  }
+  @if (cursor && !error) {
+    <div #sentinel></div>
+    <button type="button" [disabled]="loading" (click)="load(false)">
+      Load more
+    </button>
+  }
+</section>
+@if (open) {
+  <div class="overlay" tabindex="-1" (keydown)="keydown($event)">
+    <div
+      #dialog
+      class="dialog"
+      role="dialog"
+      aria-modal="true"
+      [attr.inert]="confirming ? '' : null"
+      aria-labelledby="review-dialog-title"
+    >
+      <button
+        type="button"
+        class="back"
+        [disabled]="submitting"
+        (click)="close()"
+      >
+        ← Back to product
+      </button>
+      <h2 id="review-dialog-title">Write a review</h2>
+      <form (submit)="$event.preventDefault(); submit()">
+        <fieldset [disabled]="submitting">
+          <legend>Your rating <span aria-hidden="true">*</span></legend>
+          <div class="rating">
+            @for (star of stars; track star) {
+              <label
+                ><input
+                  type="radio"
+                  name="rating"
+                  [value]="star"
+                  [checked]="rating === star"
+                  [attr.aria-label]="star + (star === 1 ? ' star' : ' stars')"
+                  (change)="setRating(star)"
+                /><span [class.selected]="star <= rating" aria-hidden="true"
+                  >★</span
+                ></label
+              >
+            }
+          </div>
+        </fieldset>
+        @if (ratingError) {
+          <p class="error" role="alert">
+            Please select a rating between 1 and 5 stars
+          </p>
+        }
+        <label for="review-name">Your name (optional)</label
+        ><input
+          id="review-name"
+          placeholder="Alex M."
+          maxlength="100"
+          [disabled]="submitting"
+          [value]="name"
+          (input)="name = $any($event.target).value"
+        />
+        <label for="review-comment">Your experience (optional)</label
+        ><textarea
+          id="review-comment"
+          maxlength="1000"
+          rows="5"
+          [disabled]="submitting"
+          [value]="comment"
+          (input)="comment = $any($event.target).value"
+        ></textarea>
+        @if (submitError) {
+          <p class="error" role="alert">
+            Unable to submit your review. Please try again.
+          </p>
+        }
+        <button class="primary submit" type="submit" [disabled]="submitting">
+          {{ submitting ? 'Submitting…' : 'Submit review' }}
+        </button>
+      </form>
+    </div>
+    @if (confirming) {
+      <div class="confirmation-overlay">
+        <div
+          #confirmation
+          class="confirmation"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="discard-title"
+        >
+          <h2 id="discard-title">Discard your review?</h2>
+          <p>Your draft will be lost.</p>
+          <button
+            type="button"
+            (click)="confirming = false; focusTargetForForm()"
+          >
+            Keep editing</button
+          ><button type="button" (click)="discard()">Discard review</button>
+        </div>
+      </div>
+    }
+  </div>
+}

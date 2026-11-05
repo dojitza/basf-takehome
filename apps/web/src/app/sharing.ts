@@ -1,3 +1,19 @@
+import { Router } from '@angular/router';
+
+export function resolveAbsoluteUrl(
+  router: Router,
+  commands: readonly unknown[],
+  queryParams: Record<string, unknown>,
+): string {
+  const tree = router.createUrlTree([...commands], { queryParams });
+  const relative = router.serializeUrl(tree);
+  const origin =
+    typeof window !== 'undefined' && window.location?.origin
+      ? window.location.origin
+      : 'http://localhost';
+  return new URL(relative, origin).toString();
+}
+
 export class ShareController {
   copiedMessage = false;
   copyFailed = false;

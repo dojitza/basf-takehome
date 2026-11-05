@@ -552,6 +552,18 @@ describe('catalogue browsing', () => {
     expect(sortTrigger.getAttribute('aria-expanded')).toBe('true');
     const backdrop = root().querySelector<HTMLButtonElement>('.backdrop');
     expect(backdrop?.getAttribute('aria-label')).toMatch(/close (sort|panel)/i);
+
+    const dialog = root().querySelector<HTMLElement>('[role="dialog"]')!;
+    dialog.focus();
+    dialog.dispatchEvent(
+      new KeyboardEvent('keydown', {
+        key: 'Tab',
+        bubbles: true,
+        cancelable: true,
+      }),
+    );
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    expect(document.activeElement).not.toBe(dialog);
   });
 
   it('manages the mobile full-screen search lifecycle and preserves active filters', async () => {

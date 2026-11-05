@@ -326,10 +326,12 @@
 </main>
 @if (mobileSearch) {
   <div
+    #searchOverlay
     class="search-overlay"
     role="dialog"
     aria-modal="true"
     aria-label="Search products"
+    tabindex="-1"
     (keydown)="onDialogKey($event)"
   >
     <form (submit)="$event.preventDefault(); commitSearch()" role="search">
@@ -338,6 +340,7 @@
           >Search products or SKU</label
         >
         <input
+          #mobileSearchInput
           pInputText
           id="mobile-search"
           type="search"
@@ -370,9 +373,11 @@
     (click)="closePanel()"
   ></button>
   <section
+    #panelDialog
     class="drawer"
     role="dialog"
     aria-modal="true"
+    tabindex="-1"
     [attr.aria-label]="panel === 'filter' ? 'Filter products' : 'Sort products'"
     (keydown)="onDialogKey($event)"
   >

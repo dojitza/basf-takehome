@@ -44,7 +44,6 @@ export class ReviewsComponent
   @ViewChild('sentinel') sentinel?: ElementRef<HTMLElement>;
   private http = inject(HttpClient);
   private cd = inject(ChangeDetectorRef);
-  private requests = new Subscription();
   private readRequest?: Subscription;
   private submitRequest?: Subscription;
   private observer?: IntersectionObserver;
@@ -90,7 +89,8 @@ export class ReviewsComponent
   ngOnDestroy() {
     this.readGeneration++;
     this.submitGeneration++;
-    this.requests.unsubscribe();
+    this.readRequest?.unsubscribe();
+    this.submitRequest?.unsubscribe();
     this.observer?.disconnect();
   }
   private resetAndLoad() {
@@ -145,6 +145,7 @@ export class ReviewsComponent
   load(first: boolean) {
     if (this.loading || (!first && !this.cursor)) return;
     const generation = ++this.readGeneration;
+    this.readRequest?.unsubscribe();
     this.loading = true;
     this.error = false;
     const params =
@@ -169,7 +170,6 @@ export class ReviewsComponent
           this.cd.markForCheck();
         },
       });
-    this.requests.add(this.readRequest);
   }
   retry() {
     this.load(this.summary === null);
@@ -245,6 +245,7 @@ export class ReviewsComponent
     // Disable the controls before sending so a fast interaction cannot edit
     // a draft while its previous values are already in flight.
     this.cd.detectChanges();
+    this.submitRequest?.unsubscribe();
     this.submitRequest = this.http
       .post(`/api/products/${this.productId}/reviews`, {
         submissionId: this.submissionId,
@@ -271,7 +272,6 @@ export class ReviewsComponent
           this.cd.markForCheck();
         },
       });
-    this.requests.add(this.submitRequest);
   }
   keydown(event: KeyboardEvent) {
     if (event.key === 'Escape') {
@@ -293,7 +293,7 @@ export class ReviewsComponent
     const first = controls[0];
     const last = controls[controls.length - 1];
     const active = document.activeElement as HTMLElement | null;
-    if (!active || !container?.contains(active)) {
+    if (!active || active === container || !container?.contains(active)) {
       event.preventDefault();
       (event.shiftKey ? last : first).focus();
     } else if (event.shiftKey && active === first) {

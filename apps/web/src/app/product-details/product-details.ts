@@ -22,7 +22,7 @@ import {
   statusSeverity,
 } from '../criteria';
 import { ReviewsComponent } from '../reviews/reviews';
-import { ShareController } from '../sharing';
+import { ShareController, resolveAbsoluteUrl } from '../sharing';
 
 export type ProductDetail = {
   id: string;
@@ -204,18 +204,11 @@ export class ProductDetailsComponent implements AfterViewChecked, OnDestroy {
   }
 
   getAbsoluteUrl(): string {
-    const tree = this.router.createUrlTree(
+    return resolveAbsoluteUrl(
+      this.router,
       ['/products', this.product?.id || this.id],
-      {
-        queryParams: criteriaToQueryParams(this.criteria),
-      },
+      criteriaToQueryParams(this.criteria),
     );
-    const relative = this.router.serializeUrl(tree);
-    const origin =
-      typeof window !== 'undefined' && window.location?.origin
-        ? window.location.origin
-        : 'http://localhost';
-    return new URL(relative, origin).toString();
   }
 
   share() {

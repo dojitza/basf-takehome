@@ -24,7 +24,7 @@ import {
   statusLabel,
   statusSeverity,
 } from '../criteria';
-import { ShareController } from '../sharing';
+import { ShareController, resolveAbsoluteUrl } from '../sharing';
 
 type Product = {
   id: string;
@@ -63,9 +63,13 @@ export class CatalogueComponent implements AfterViewChecked, OnDestroy {
   private lastTrigger?: HTMLElement;
   private generation = 0;
   private shouldFocusHeading = false;
+  private focusTarget: 'mobileSearch' | 'panel' | null = null;
 
   @ViewChild('heading') headingElement?: ElementRef<HTMLElement>;
   @ViewChild('copyLinkButton') copyLinkButton?: ElementRef<HTMLButtonElement>;
+  @ViewChild('mobileSearchInput')
+  mobileSearchInput?: ElementRef<HTMLInputElement>;
+  @ViewChild('panelDialog') panelDialog?: ElementRef<HTMLElement>;
 
   @ViewChild('sentinel') set sentinel(
     value: ElementRef<HTMLElement> | undefined,
@@ -160,6 +164,15 @@ export class CatalogueComponent implements AfterViewChecked, OnDestroy {
     if (this.shouldFocusHeading && this.headingElement && !this.loading) {
       this.shouldFocusHeading = false;
       this.headingElement.nativeElement.focus();
+    }
+    if (this.focusTarget === 'mobileSearch' && this.mobileSearchInput) {
+      this.focusTarget = null;
+      this.mobileSearchInput.nativeElement.focus();
+    } else if (this.focusTarget === 'panel' && this.panelDialog) {
+      this.focusTarget = null;
+      this.panelDialog.nativeElement
+        .querySelector<HTMLElement>('input, button')
+        ?.focus();
     }
   }
 
@@ -309,13 +322,12 @@ export class CatalogueComponent implements AfterViewChecked, OnDestroy {
   openSearch(trigger: HTMLElement) {
     this.lastTrigger = trigger;
     this.mobileSearch = true;
-    setTimeout(() =>
-      document.querySelector<HTMLElement>('#mobile-search')?.focus(),
-    );
+    this.focusTarget = 'mobileSearch';
   }
 
   closeSearch() {
     this.mobileSearch = false;
+    this.focusTarget = null;
     this.searchInput = this.criteria.search;
     this.lastTrigger?.focus();
   }
@@ -361,17 +373,12 @@ export class CatalogueComponent implements AfterViewChecked, OnDestroy {
       applicationArea: [...this.criteria.applicationArea],
     };
     this.panel = panel;
-    setTimeout(() =>
-      document
-        .querySelector<HTMLElement>(
-          '[role="dialog"] input, [role="dialog"] button',
-        )
-        ?.focus(),
-    );
+    this.focusTarget = 'panel';
   }
 
   closePanel() {
     this.panel = null;
+    this.focusTarget = null;
     this.lastTrigger?.focus();
   }
 
@@ -439,25 +446,27 @@ export class CatalogueComponent implements AfterViewChecked, OnDestroy {
       ),
     ];
     if (!controls.length) return;
-    if (event.shiftKey && document.activeElement === controls[0]) {
+    const first = controls[0];
+    const last = controls[controls.length - 1];
+    const active = document.activeElement as HTMLElement | null;
+    if (!active || active === dialog || !dialog.contains(active)) {
       event.preventDefault();
-      controls.at(-1)?.focus();
-    } else if (!event.shiftKey && document.activeElement === controls.at(-1)) {
+      (event.shiftKey ? last : first).focus();
+    } else if (event.shiftKey && active === first) {
       event.preventDefault();
-      controls[0].focus();
+      last.focus();
+    } else if (!event.shiftKey && active === last) {
+      event.preventDefault();
+      first.focus();
     }
   }
 
   getAbsoluteUrl(): string {
-    const tree = this.router.createUrlTree(['/'], {
-      queryParams: criteriaToQueryParams(this.criteria),
-    });
-    const relative = this.router.serializeUrl(tree);
-    const origin =
-      typeof window !== 'undefined' && window.location?.origin
-        ? window.location.origin
-        : 'http://localhost';
-    return new URL(relative, origin).toString();
+    return resolveAbsoluteUrl(
+      this.router,
+      ['/'],
+      criteriaToQueryParams(this.criteria),
+    );
   }
 
   share() {

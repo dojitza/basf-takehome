@@ -341,9 +341,9 @@ test('direct product from PostgreSQL shows every customer field without metadata
     await expect(page.getByText(value, { exact: false }).first()).toBeVisible();
   }
   await expect(page.getByText(p001Id)).toHaveCount(0);
-  await expect(
-    page.getByText(/review|rating|add to cart|order now|in stock/i),
-  ).toHaveCount(0);
+  await expect(page.getByText(/add to cart|order now|in stock/i)).toHaveCount(
+    0,
+  );
   await page.getByRole('link', { name: /back to catalogue/i }).click();
   await expect(results(page)).toBeVisible();
   expect(new URL(page.url()).search).toBe('');

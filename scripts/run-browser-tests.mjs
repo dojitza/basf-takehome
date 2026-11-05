@@ -172,6 +172,30 @@ try {
         'ACTIVE',
       ],
     );
+    const reviewTable = await fixture.query(
+      'SELECT to_regclass(\'public."Review"\') AS reg',
+    );
+    if (reviewTable.rows[0]?.reg) {
+      for (let r = 1; r <= 12; r++) {
+        const reviewId = `00000000-0000-4000-9000-${String(r).padStart(12, '0')}`;
+        const submissionId = `00000000-0000-4000-a000-${String(r).padStart(12, '0')}`;
+        const createdAt = new Date(
+          Date.UTC(2026, 0, r, 12, 0, 0),
+        ).toISOString();
+        await fixture.query(
+          'INSERT INTO "Review" (id, "productId", rating, "reviewerName", comment, "createdAt", "submissionId") VALUES ($1, $2, $3, $4, $5, $6::timestamptz, $7)',
+          [
+            reviewId,
+            '00000000-0000-4000-8000-000000000020',
+            r % 2 === 0 ? 5 : 4,
+            r === 12 ? null : `Reviewer ${String(r).padStart(2, '0')}`,
+            `Seeded Review ${String(r).padStart(2, '0')}`,
+            createdAt,
+            submissionId,
+          ],
+        );
+      }
+    }
   } finally {
     await fixture.end();
   }

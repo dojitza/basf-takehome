@@ -151,7 +151,20 @@ afterEach(() => {
     configurable: true,
     value: originalClipboard,
   });
-  if (http) http.verify({ ignoreCancelled: true });
+  if (http) {
+    for (const req of http.match((r) =>
+      /\/api\/products\/[^/]+\/reviews$/.test(r.url),
+    )) {
+      if (!req.cancelled) {
+        req.flush({
+          items: [],
+          nextCursor: null,
+          summary: { count: 0, average: null },
+        });
+      }
+    }
+    http.verify({ ignoreCancelled: true });
+  }
   fixture?.destroy();
 });
 
@@ -246,13 +259,13 @@ describe('product details, sharing and navigation (v0.2.0)', () => {
       expect(text()).toContain(expected);
     }
 
-    // Must not expose internal UUID, timestamps/import flags, review placeholders, or invented actions/catalogue controls.
+    // Must not expose internal UUID, timestamps/import flags, or invented commerce actions/catalogue controls.
     expect(text()).not.toContain(id1);
     expect(text()).not.toMatch(
       /presentInLatestImport|lastImportedAt|createdAt|updatedAt/i,
     );
     expect(text()).not.toMatch(
-      /review|rating|add to cart|order now|request quote|contact sales|in stock|out of stock/i,
+      /add to cart|order now|request quote|contact sales|in stock|out of stock/i,
     );
     expect(
       root().querySelector('input[type="search"], #desktop-search'),

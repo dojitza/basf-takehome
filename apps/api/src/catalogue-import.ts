@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { parse } from 'csv-parse/sync';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 const headers = [
@@ -220,17 +220,21 @@ export async function importCatalogue({
         SELECT p.id, p.sku, p.name, p."chemicalName", p.function, p."applicationArea", p.region,
           ARRAY(SELECT jsonb_array_elements_text(p.certifications)), p.status::"ProductStatus", p."launchYear", p.description, true, ${now}, ${now}, ${now}
         FROM jsonb_to_recordset(${payload}::jsonb) AS p(id text, sku text, name text, "chemicalName" text, function text, "applicationArea" text, region text, certifications jsonb, status text, "launchYear" integer, description text)`;
+        const rowChanged = (left: string, right: string) =>
+          Prisma.raw(
+            `ROW(${left}.name, ${left}."chemicalName", ${left}.function, ${left}."applicationArea", ${left}.region, ${left}.certifications, ${left}.status, ${left}."launchYear", ${left}.description, ${left}."presentInLatestImport") IS DISTINCT FROM ROW(${right}.name, ${right}."chemicalName", ${right}.function, ${right}."applicationArea", ${right}.region, ${right}.certifications, ${right}.status, ${right}."launchYear", ${right}.description, true)`,
+          );
         const [result] = await tx.$queryRaw<Counts[]>`SELECT
         count(*) FILTER (WHERE old.id IS NULL)::int AS created,
-        count(*) FILTER (WHERE old.id IS NOT NULL AND ROW(old.name, old."chemicalName", old.function, old."applicationArea", old.region, old.certifications, old.status, old."launchYear", old.description, old."presentInLatestImport") IS DISTINCT FROM ROW(s.name, s."chemicalName", s.function, s."applicationArea", s.region, s.certifications, s.status, s."launchYear", s.description, true))::int AS updated,
-        count(*) FILTER (WHERE old.id IS NOT NULL AND ROW(old.name, old."chemicalName", old.function, old."applicationArea", old.region, old.certifications, old.status, old."launchYear", old.description, old."presentInLatestImport") IS NOT DISTINCT FROM ROW(s.name, s."chemicalName", s.function, s."applicationArea", s.region, s.certifications, s.status, s."launchYear", s.description, true))::int AS unchanged,
+        count(*) FILTER (WHERE old.id IS NOT NULL AND (${rowChanged('old', 's')}))::int AS updated,
+        count(*) FILTER (WHERE old.id IS NOT NULL AND NOT (${rowChanged('old', 's')}))::int AS unchanged,
         (SELECT count(*)::int FROM "Product" p WHERE p."presentInLatestImport" AND NOT EXISTS (SELECT 1 FROM import_snapshot i WHERE i.sku = p.sku)) AS absent
         FROM import_snapshot s LEFT JOIN "Product" old ON old.sku = s.sku`;
         await tx.$executeRaw`UPDATE "Product" p SET "presentInLatestImport" = false, "updatedAt" = ${now} WHERE p."presentInLatestImport" AND NOT EXISTS (SELECT 1 FROM import_snapshot i WHERE i.sku = p.sku)`;
         await tx.$executeRaw`INSERT INTO "Product" SELECT * FROM import_snapshot
         ON CONFLICT (sku) DO UPDATE SET
         name = EXCLUDED.name, "chemicalName" = EXCLUDED."chemicalName", function = EXCLUDED.function, "applicationArea" = EXCLUDED."applicationArea", region = EXCLUDED.region, certifications = EXCLUDED.certifications, status = EXCLUDED.status, "launchYear" = EXCLUDED."launchYear", description = EXCLUDED.description,
-        "updatedAt" = CASE WHEN ROW("Product".name, "Product"."chemicalName", "Product".function, "Product"."applicationArea", "Product".region, "Product".certifications, "Product".status, "Product"."launchYear", "Product".description, "Product"."presentInLatestImport") IS DISTINCT FROM ROW(EXCLUDED.name, EXCLUDED."chemicalName", EXCLUDED.function, EXCLUDED."applicationArea", EXCLUDED.region, EXCLUDED.certifications, EXCLUDED.status, EXCLUDED."launchYear", EXCLUDED.description, true) THEN EXCLUDED."updatedAt" ELSE "Product"."updatedAt" END,
+        "updatedAt" = CASE WHEN ${rowChanged('"Product"', 'EXCLUDED')} THEN EXCLUDED."updatedAt" ELSE "Product"."updatedAt" END,
         "presentInLatestImport" = true, "lastImportedAt" = EXCLUDED."lastImportedAt"`;
         return result;
       },

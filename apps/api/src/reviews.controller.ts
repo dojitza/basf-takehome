@@ -11,9 +11,8 @@ import {
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { DatabaseService } from './database.service.js';
+import { UUID_PATTERN, parsePaginationInt } from './validation.js';
 
-const uuid =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const select = {
   id: true,
   rating: true,
@@ -21,18 +20,21 @@ const select = {
   comment: true,
   createdAt: true,
 } as const;
+
 function optionalText(value: unknown, max: number): string | null {
   if (value == null) return null;
   if (typeof value !== 'string' || value.trim().length > max)
     throw new BadRequestException('Invalid review');
   return value.trim() || null;
 }
+
 @Controller('products/:id/reviews')
 export class ReviewsController {
   constructor(private readonly db: DatabaseService) {}
+
   private async product(id: string) {
     if (
-      !uuid.test(id) ||
+      !UUID_PATTERN.test(id) ||
       !(await this.db.product.findUnique({
         where: { id: id.toLowerCase() },
         select: { id: true },
@@ -41,17 +43,11 @@ export class ReviewsController {
       throw new NotFoundException('Product not found');
     return id.toLowerCase();
   }
+
   @Get()
   async list(@Param('id') id: string, @Query() query: Record<string, unknown>) {
     const productId = await this.product(id);
-    const limit =
-      query['limit'] === undefined
-        ? 10
-        : typeof query['limit'] === 'string' && /^\d+$/.test(query['limit'])
-          ? Number(query['limit'])
-          : NaN;
-    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
-      throw new BadRequestException('Invalid pagination');
+    const limit = parsePaginationInt(query['limit'], 10, 1, 100);
     let cursor: { createdAt: Date; id: string } | undefined;
     if (query['cursor'] !== undefined) {
       try {
@@ -70,7 +66,7 @@ export class ReviewsController {
           !('id' in parsed) ||
           typeof parsed.createdAt !== 'string' ||
           typeof parsed.id !== 'string' ||
-          !uuid.test(parsed.id)
+          !UUID_PATTERN.test(parsed.id)
         )
           throw new Error();
         const date = new Date(parsed.createdAt);
@@ -123,6 +119,7 @@ export class ReviewsController {
       summary: { count: aggregate._count._all, average: aggregate._avg.rating },
     };
   }
+
   @Post()
   async create(@Param('id') id: string, @Body() body: unknown) {
     const productId = await this.product(id);
@@ -135,7 +132,7 @@ export class ReviewsController {
           !['submissionId', 'rating', 'reviewerName', 'comment'].includes(key),
       ) ||
       typeof data['submissionId'] !== 'string' ||
-      !uuid.test(data['submissionId']) ||
+      !UUID_PATTERN.test(data['submissionId']) ||
       typeof data['rating'] !== 'number' ||
       !Number.isInteger(data['rating']) ||
       data['rating'] < 1 ||

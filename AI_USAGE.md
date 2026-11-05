@@ -80,3 +80,7 @@ The human then changed the mobile label to “Link to results”; Codex updated 
 ## 2026-11-05 — Railway demo
 
 The human requested a private GitHub repository and a ready-to-use Railway demo, then explicitly directed Codex to commit the existing working changes as a deployment test and add the live URL to the README. Codex used the GitHub connection, SSH Git and Railway tools to prepare the deployment.
+
+## 2026-11-05 — PrimeNG licence
+
+The human requested a fix for the Railway licence notice and initially suggested committing the key to the private repository while noting runtime configuration as the desired direction. Codex proposed loading it from a Railway environment variable now, explaining that the key remains visible in the browser; the human agreed. Codex configured runtime loading and kept the key out of Git.

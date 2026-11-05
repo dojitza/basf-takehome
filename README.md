@@ -31,6 +31,8 @@ Open <http://localhost:8180>. Stop with `docker compose down`; the database volu
 
 PrimeNG 22 requires a Community key. After `npm ci`, add it to `apps/web/src/primeng-license.local.ts` before building; without it, the app runs with a license notice. See the [installation guide](https://primeng.dev/installation).
 
+For the Railway demo, set `PRIMENG_LICENSE_KEY` on the app service. The API supplies it to the browser at startup, so it is not committed to the repository and is visible to visitors of the application. An unavailable or empty runtime setting falls back to the locally configured key.
+
 For local development, run `npm run dev` after migrating and seeding, then open <http://localhost:4200>.
 
 ### Testing Web Share locally (HTTPS)

@@ -1,5 +1,7 @@
 # Engineering & Design Notes
 
+The Railway demo reads its PrimeNG licence key from a service environment variable at runtime instead of storing it in Git. PrimeNG needs the key in the browser, where visitors can inspect it; the variable makes it easier to replace without a source change, but does not make it a browser secret.
+
 ## Design and architecture decisions
 
 ### Technology choices (that were not prescribed in the assignement)

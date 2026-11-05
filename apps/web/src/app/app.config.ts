@@ -26,14 +26,16 @@ const catalogueTheme = definePreset(Aura, {
     },
   },
 });
-export const appConfig: ApplicationConfig = {
+export const createAppConfig = (license: string): ApplicationConfig => ({
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideRouter(routes),
     provideHttpClient(),
     providePrimeNG({
-      license: primeNgLicenseKey,
+      license,
       theme: { preset: catalogueTheme, options: { darkModeSelector: false } },
     }),
   ],
-};
+});
+
+export const appConfig = createAppConfig(primeNgLicenseKey);

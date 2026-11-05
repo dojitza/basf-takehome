@@ -476,6 +476,10 @@ Verification:
 - Frontend build passed (with the existing initial bundle budget warning); all 74 frontend Jest tests passed. A headless Chromium layout check at 320px, 390px and 800px confirmed the respective labels and no horizontal button overflow. At 320px, “Share results” wraps to two lines; this change does not address that separate layout behavior. Human review is pending.
 - Follow-up: the human changed the mobile wording to “Link to results”. The frontend build and all 74 frontend tests passed again; the updated label has not had a separate browser layout review.
 
+## 2026-11-05 — README screenshots
+
+Captured desktop and iPhone-sized catalogue screenshots with Playwright against the local app and populated catalogue, visually inspected both, and replaced the README screenshot placeholders. The mobile capture shows the revised “Link to results” label.
+
 ## 2026-11-05 — Phase 8 final review and audit of the complete reviews feature
 
 Conducted the final review pass of the entire product reviews feature (v0.3.0) across data layer, backend API, frontend components, and cross-slice interactions:

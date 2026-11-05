@@ -1,8 +1,3 @@
-# Resume notes
-
-- At the start of each interaction, check the root `RESUME.md`. If it contains notes, first remind the human to check it, then proceed with their task. Repeat the reminder while the file is populated.
-- Keep `RESUME.md` unless the human explicitly requests its removal.
-
 # Working on the assignment
 
 - The supplied assignment is preserved verbatim in root `ASSIGNMENT.md`; `README.md` is the project setup and usage deliverable. Preserve `ASSIGNMENT.md` and `data/products.csv` unless the human requests changes.

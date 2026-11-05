@@ -530,3 +530,9 @@ The human said the generated designs looked good and asked to bank them and make
 - The human requested writing Phase 3 tests and reporting back, and said they will dispatch an adversarial agent for review. Codex wrote API integration, frontend Jest, and browser tests; no agent was dispatched by Codex and application implementation remains pending.
 
 - The human requested committing the Phase 3 work. Codex committed the review planning and tests in scoped commits, leaving unrelated human-document changes untouched.
+
+## 2026-11-05 — Mobile copy label
+
+The human reported that “Copy link to results” overflowed on mobile. Codex recommended stacking the sharing buttons or shortening the label; the human suggested “Copy results,” and Codex noted that it could imply copying the products rather than a URL. The human chose “Copy link” on mobile. Codex retained the full label on wider screens.
+
+The human then changed the mobile label to “Link to results”; Codex updated it while retaining the wider-screen wording.

@@ -33,6 +33,9 @@ main {
   height: 1rem;
   flex: none;
 }
+.copy-link-mobile {
+  display: none;
+}
 .desktop-search {
   flex: 1;
   min-width: 12rem;
@@ -266,6 +269,12 @@ legend {
   border: 0;
 }
 @media (max-width: 600px) {
+  .copy-link-desktop {
+    display: none;
+  }
+  .copy-link-mobile {
+    display: inline;
+  }
   .toolbar {
     flex-direction: column;
     align-items: stretch;

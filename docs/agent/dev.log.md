@@ -446,3 +446,32 @@ Verification:
 Implemented the Review model and migration, cursor-paginated API with on-demand aggregates and idempotent submission, and the product review section and responsive form. Re-import preservation and availability-independent access are covered by integration tests. Added the missing Jest ESM import in the hardened API test. A browser run exposed a timing race where editing immediately after a retry could submit stale content; the form now disables controls synchronously. An in-flight review read is cancelled before refreshing after successful submission.
 
 Verification: `npm run lint` passed; `npm test` passed (69 API and 74 web tests); `npm run test:integration` passed (126 tests); `npm run build` passed with the existing initial bundle size budget warning; `npm run test:e2e` passed (45 tests). The desktop and mobile form screenshots were visually inspected. `npm run check` stopped at the formatting check because pre-existing untracked `AI_USAGE_LOG.md` does not pass Prettier; that file was left untouched. No human acceptance or Phase 6 adversarial code review has been claimed.
+
+## 2026-11-05 — Phase 6 adversarial review and direct refinement of reviews implementation
+
+Adversarially audited the implemented reviews slice (`6a4b1d2`) across database schema, migration, NestJS API (`apps/api/src/reviews.controller.ts`), Angular UI (`apps/web/src/app/reviews/`, `apps/web/src/app/product-details/`), and the accepted visual reference (`docs/agent/reviews/references/mobile-review-page.png`) against [reviews-plan.md](reviews/reviews-plan.md), [architecture-proposal.md](reviews/architecture-proposal.md), and [code-review.md](code-review.md).
+
+Concrete issues found and directly resolved:
+1. **Component lifecycle & stale-request hygiene on `productId` changes (`apps/web/src/app/reviews/reviews.ts`):**
+   - `ReviewsComponent` only loaded in `ngOnInit` without `OnChanges` handling or generation counters on read/submit requests. Added `OnChanges` (`resetAndLoad()`), `readGeneration` / `submitGeneration` guards, and `100px` `IntersectionObserver` `rootMargin` matching `CatalogueComponent`.
+2. **Dialog focus trap escape, backdrop click, and whitespace-only dirty check (`apps/web/src/app/reviews/reviews.ts`, `reviews.html`):**
+   - When `document.activeElement` was `.overlay` (`tabindex="-1"`, e.g. after clicking non-interactive dialog whitespace), pressing `Tab` or `Shift+Tab` escaped the dialog because `keydown()` only checked `activeElement === first` or `last`. Updated `keydown()` to trap focus into the active dialog container whenever `activeElement` is outside `container`.
+   - Added backdrop click dismissal (`onBackdropClick()`) on `.overlay` and `.confirmation-overlay`, and normalized the dirty-draft check (`this.rating || this.name.trim() || this.comment.trim()`) so whitespace-only optional fields close without a false discard prompt.
+3. **Screen-reader semantics & non-color star distinction (`apps/web/src/app/reviews/reviews.html`):**
+   - Review star blocks used `<div class="stars" [attr.aria-label]="...">` without `role="img"` and exposed 5 raw `★` glyphs (`★★★★★`) to assistive tech regardless of rating. Added `role="img"` and `aria-hidden="true"` on inner star glyphs across both summary and individual reviews, and switched unselected/empty stars to hollow `☆` vs filled `★` (WCAG 1.4.1 Use of Color + matching `mobile-review-page.png`).
+   - Added `[attr.datetime]="review.createdAt"` on `<time>`, linked the rating `<fieldset>` to `#rating-error` via `aria-invalid` and `aria-describedby`, and formatted the summary count as `({{ summary.count }} review(s))` without trailing `&nbsp;`.
+4. **Visual reference alignment & responsive layout fixes (`apps/web/src/app/reviews/reviews.html`, `reviews.scss`, `product-details.html`):**
+   - Passed `[productName]="product.name || product.sku"` to `<app-reviews>` and rendered the product subtitle and header divider beneath `Write a review` to match `docs/agent/reviews/references/mobile-review-page.png`.
+   - Fixed `.reviews-heading` / `h2` margin collision (`h2 { margin: 0 0 1rem }` inside flex row/column misaligned the desktop button and left a `2rem` internal gap with `0px` bottom margin on mobile).
+   - Styled the post-submission banner using shared `.status-banner.success` with a dismiss button restoring focus to `Write a review`, styled `.load-error` alert and `.load-area` spacing, grouped `.field` label+input pairs with `font-weight: 600` labels, enlarged star radio touch targets to `2.75rem × 2.75rem` (44×44px) with BASF blue `#00549f` selection, and added `100dvh` + `env(safe-area-inset-bottom)` padding on mobile dialogs.
+
+Verification:
+- `npm run lint` and `npx prettier --check` pass.
+- Full test suites pass across all layers: 69 API unit tests, 74 frontend Jest tests, 126 PostgreSQL integration tests, and 45 Playwright E2E browser tests.
+- Ready for Phase 7 (human taste test & iterative tuning).
+
+## 2026-11-05 — Mobile copy label
+
+- Shortened the catalogue copy action to “Copy link” at widths up to 600px; wider screens retain “Copy link to results”.
+- Frontend build passed (with the existing initial bundle budget warning); all 74 frontend Jest tests passed. A headless Chromium layout check at 320px, 390px and 800px confirmed the respective labels and no horizontal button overflow. At 320px, “Share results” wraps to two lines; this change does not address that separate layout behavior. Human review is pending.
+- Follow-up: the human changed the mobile wording to “Link to results”. The frontend build and all 74 frontend tests passed again; the updated label has not had a separate browser layout review.

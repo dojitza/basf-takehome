@@ -551,3 +551,27 @@ The human said the generated designs looked good and asked to bank them and make
   3. Identified gaps in `apps/web/src/app/reviews.spec.ts`: missing `http.verify()` in `afterEach`, no tests for blank-form close vs dirty-draft confirmation across rating-only, name-only, and comment-only edits, no tests for in-flight disablement or successful submission refresh, no test for post-submission refresh GET failure (must not claim submission failed), no unit test for `submissionId` reuse on unchanged normalized content vs new `submissionId` generation after edits, and no test for stale review responses across product navigation. Expanded the suite from 5 to 14 cases.
   4. Identified cross-test and cross-viewport state pollution in `tests/e2e/reviews.spec.ts` (all 8 desktop and mobile tests mutated the same product `00000000-0000-4000-8000-000000000001`), missing mobile full-screen sheet (`Back to product`) vs desktop modal verification, missing edited-submission retry verification (`new submissionId` after editing a failed submission), missing newest-first batch pagination (`Load more`) E2E verification, and missing absent-product E2E verification. Updated `scripts/run-browser-tests.mjs` and expanded `tests/e2e/reviews.spec.ts` to 11 isolated cases.
 - Verification: `npm run lint`, `npm run format:check`, and TypeScript checks pass; all existing unit (69 API + 60 Web), PostgreSQL integration (74), and Playwright E2E (34) tests pass; all hardened review tests (52 PostgreSQL integration, 14 Frontend Jest, 11 Playwright E2E) fail cleanly against the unimplemented v0.3.0 slice with zero vacuous passes. No application implementation code was modified, and no sub-agents were used.
+
+## 2026-11-05 — Review implementation
+
+The human directed Codex to proceed with Phase 5 and implement the review feature against the agreed architecture and hardened tests. Codex implemented the database, API and interface, fixed a missing Jest ESM import in the existing integration test, and used the test results to correct a submission timing issue. Phase 6 adversarial review and the human taste test remain pending.
+
+## 2026-11-05 — Mobile copy label
+
+The human reported that “Copy link to results” overflowed on mobile. Codex recommended stacking the sharing buttons or shortening the label; the human suggested “Copy results,” and Codex noted that it could imply copying the products rather than a URL. The human chose “Copy link” on mobile. Codex retained the full label on wider screens.
+
+The human then changed the mobile label to “Link to results”; Codex updated it while retaining the wider-screen wording.
+
+## 2026-11-05 — Railway demo
+
+The human requested a private GitHub repository and a ready-to-use Railway demo, then explicitly directed Codex to commit the existing working changes as a deployment test and add the live URL to the README. Codex used the GitHub connection, SSH Git and Railway tools to prepare the deployment.
+
+- 2026-11-05: Codex used Playwright and the isolated browser-test stack to capture desktop and mobile review-list and review-form screenshots in `docs/human/v0.3.0/`. Screenshots use the test fixture data; no review was submitted.
+
+## 2026-11-05 — Review pagination index
+
+The human chose option B: change the review pagination index to descending order in the Prisma schema and existing review migration, and reset the Railway deployment so the updated migration is applied. Codex retained the existing Prisma cursor query; the index direction alone does not turn its OR predicate into a row-value seek.
+
+## 2026-11-05 — PrimeNG licence
+
+The human requested a fix for the Railway licence notice and initially suggested committing the key to the private repository while noting runtime configuration as the desired direction. Codex proposed loading it from a Railway environment variable now, explaining that the key remains visible in the browser; the human agreed. Codex configured runtime loading and kept the key out of Git.

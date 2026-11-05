@@ -1,9 +1,7 @@
-# Product Finder take-home assignment
+# BASF Product Finder - take-home assignment - Dominik Kotarski
 
-Original brief: [ASSIGNMENT.md](ASSIGNMENT.md).
-
-- **Live preview:** [Product Finder on Railway](https://app-production-323f.up.railway.app)
-- **Video overview:** https://www.loom.com/share/5fc55e5ff7e945439bbfb0f472926bc1
+- **Live preview:** [Live Product Finder demo](https://app-production-323f.up.railway.app)
+- **Video overview:** [Product Finder demo video](https://www.loom.com/share/5fc55e5ff7e945439bbfb0f472926bc1)
 
 |                                                   Desktop product finder                                                    |                                                   Mobile product finder                                                   |
 | :-------------------------------------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------------------------: |
@@ -30,8 +28,6 @@ docker compose up --build --wait
 Open <http://localhost:8180>. Stop with `docker compose down`; the database volume persists. To re-import another complete catalogue, run `npm run db:seed -- /absolute/path/to/products.csv`.
 
 PrimeNG 22 requires a Community key. After `npm ci`, add it to `apps/web/src/primeng-license.local.ts` before building; without it, the app runs with a license notice. See the [installation guide](https://primeng.dev/installation).
-
-For the Railway demo, set `PRIMENG_LICENSE_KEY` on the app service. The API supplies it to the browser at startup, so it is not committed to the repository and is visible to visitors of the application. An unavailable or empty runtime setting falls back to the locally configured key.
 
 For local development, run `npm run dev` after migrating and seeding, then open <http://localhost:4200>.
 

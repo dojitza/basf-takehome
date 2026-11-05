@@ -516,3 +516,21 @@ Verification evidence:
 - Production builds (`npm run build`): API and web builds pass (with the existing initial bundle budget warning).
 - PostgreSQL integration tests (`npm run test:integration`): all 126 tests pass across 4 suites.
 - Playwright E2E browser tests (`npm run test:e2e`): all 45 desktop and mobile journeys pass in 36.9 s.
+
+## 2026-11-05 — Review index and Railway reset
+
+Updated the review pagination index in the Prisma schema and existing review migration to order `createdAt` and `id` descending. The PostgreSQL integration check now asserts the index directions; all 126 integration tests passed, and Prisma schema validation passed. An initial direct test invocation failed the database isolation guard because it omitted the test database configuration; the root integration command supplied it correctly. Railway reset the demo database, reapplied both migrations, and imported 200 products; the public catalogue and review read endpoint returned HTTP 200. The temporary reset switch was disabled and the reset code removed after use. The Prisma OR cursor query remains unchanged.
+
+## 2026-11-05 — Runtime PrimeNG configuration
+
+Added a no-store public configuration endpoint and loaded the Railway-provided PrimeNG key before frontend bootstrap, with a local-key fallback if configuration is missing or unavailable. The key is excluded from Git and remains visible to browser users. Both workspace builds and unit suites passed (70 API and 74 frontend tests). After deploying, desktop and mobile Chromium checks confirmed the key was present, the catalogue loaded, and no PrimeUI licence notice or licence console message appeared. The build retained its existing bundle-size warning.
+
+## 2026-11-05 — Final submission pass and documentation polish
+
+Conducted a comprehensive final pass across deliverables, links, syntax, and formatting:
+- Fixed markdown link syntax for the video walkthrough in `README.md`.
+- Corrected link to `AI_DECISIONS_LOG.md` and fixed minor typos, punctuation, and terminology in `DECISIONS.md`.
+- Polished `AI_USAGE.md` into a concise, focused submission document, migrating trailing chronological log entries to `AI_USAGE_LOG.md`.
+- Completed architectural review summaries across `docs/human/` (`v0.1.0`, `v0.2.0`, `v0.3.0`) and resolved all remaining TODO stubs.
+- Updated `TODO.md` with milestone completion and post-submission future backlog.
+- Verified all checks: ESLint, Prettier, 70 API unit tests, 74 frontend Jest tests, 126 PostgreSQL integration tests, and 45 Playwright browser tests.

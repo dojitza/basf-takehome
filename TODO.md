@@ -1,14 +1,11 @@
 # To do
 
-###
+All core milestones and final submission checks are complete.
 
-finish review passes
+## Future backlog (post-submission productization)
 
-- After the agreed core features, consider a focused frontend/backend review using the [future code review criteria](docs/agent/code-review.md). Review and refactoring passes are deferred.
-
-Finish ai_usage
-finish decisions.md
-finish readme.md
-deploy demo
-
-finish or remove human summaries of architectural reviews in human docs
+- Moderation workflows and verified reviewer authentication.
+- Full import microservice with automated PIM delta ingestion and anomaly alerting.
+- Denser desktop layout exploration (data grid approach).
+- Catalogue-scale search indexing (Full-Text Search / pgvector) and performance load testing at 50k+ items.
+- Periodic catalogue archiving/cleanup for historical absent entries.

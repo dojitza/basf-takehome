@@ -495,3 +495,24 @@ Conducted the final review pass of the entire product reviews feature (v0.3.0) a
 ## 2026-11-05 — Railway demo
 
 Created a private GitHub repository and Railway app and PostgreSQL services with a persistent volume. The app serves the frontend and API from one origin; a pre-deploy step applies migrations and imports the supplied catalogue only if it is empty. The first deployment exposed a missing database preparation command; after correcting its configuration, Railway applied both migrations and imported 200 products. Browser checks at 1280px and 390px loaded the catalogue and opened and reloaded a product detail URL. The container build passed with the existing frontend bundle budget warning.
+
+- 2026-11-05: Captured four v0.3.0 review screenshots at desktop and mobile viewport sizes using the isolated browser-test stack and seeded fixtures. The temporary Playwright capture passed; screenshots depict the current working tree, including existing uncommitted changes.
+
+## 2026-11-05 — Cross-stack code review pass (frontend, backend, data contracts)
+
+Executed the agreed cross-stack review pass against [code-review.md](code-review.md):
+- **Single-source catalogue filter/search SQL (`apps/api/src/products.controller.ts`):** Replaced the duplicated `Prisma.ProductWhereInput` vs raw `Prisma.sql` filter construction with a single `whereSql` fragment used by both the `SELECT ...` batch query and the `SELECT count(*)::int` total query, eliminating any risk of `items` and `total` diverging.
+- **Shared API validation helpers (`apps/api/src/validation.ts`, `products.controller.ts`, `reviews.controller.ts`):** Consolidated `UUID_PATTERN` and `parsePaginationInt()` across both controllers.
+- **Deduplicated import row-change predicate (`apps/api/src/catalogue-import.ts`):** Extracted `rowChanged(left, right)` in `importCatalogue()` so the 10-column `ROW(...) IS DISTINCT FROM ROW(...)` predicate is defined once and shared by `updated`, `unchanged`, and `ON CONFLICT DO UPDATE` timestamp preservation.
+- **Dialog focus-trap & lifecycle hygiene (`apps/web/src/app/catalogue/`, `apps/web/src/app/reviews/reviews.ts`):**
+  - Replaced `setTimeout` + global `document.querySelector` focus calls in `CatalogueComponent.openSearch()` and `openPanel()` with `@ViewChild` (`mobileSearchInput`, `panelDialog`) and `ngAfterViewChecked`.
+  - Hardened `CatalogueComponent.onDialogKey()` and `ReviewsComponent.keydown()` with `tabindex="-1"` on dialog containers and `!active || active === dialog || !dialog.contains(active)` so `Tab` / `Shift+Tab` pulls focus into the first/last control even after clicking non-interactive dialog whitespace.
+  - Replaced the growing `requests = new Subscription()` accumulator in `ReviewsComponent` with direct cleanup of `readRequest` and `submitRequest`.
+- **Shared URL resolution and warning banner styles (`apps/web/src/app/sharing.ts`, `_shared.scss`, `catalogue`, `product-details`):** Consolidated `resolveAbsoluteUrl()` in `sharing.ts` and `.warning` base styling in `_shared.scss`.
+
+Verification evidence:
+- `npm run lint` and `npx prettier --check apps tests`: 0 errors.
+- Unit tests (`npm test`): 69 API unit tests + 74 frontend Jest tests pass (including a new focus-trap test for dialog container focus in `catalogue-browsing.spec.ts`).
+- Production builds (`npm run build`): API and web builds pass (with the existing initial bundle budget warning).
+- PostgreSQL integration tests (`npm run test:integration`): all 126 tests pass across 4 suites.
+- Playwright E2E browser tests (`npm run test:e2e`): all 45 desktop and mobile journeys pass in 36.9 s.

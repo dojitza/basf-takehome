@@ -4,7 +4,7 @@
 
 The bootstrap uses PrimeNG Community; the catalogue import, catalogue browsing, and product details/sharing/navigation (`v0.2.0`) slices are implemented and verified. The repository has npm workspaces for Angular 22 (`apps/web`) and NestJS 12 ESM (`apps/api`), Prisma 7.10.1, PostgreSQL Compose, Jest in both apps, ESLint/Prettier and CI configuration. Root README contains run/check instructions; DECISIONS.md describes foundation choices and outstanding domain decisions. ASSIGNMENT.md and data/products.csv are preserved.
 
-The shell and readiness endpoint are infrastructure only. The import slice adds a Product model, migration and manual complete-snapshot seed. The products browsing and product details (`GET /api/products/:id`, `/products/:id`) API and UI exist; the reviews API/UI and review model are implemented; adversarial code review and human review are pending.
+The shell and readiness endpoint are infrastructure only. The import slice adds a Product model, migration and manual complete-snapshot seed. The products browsing and product details (`GET /api/products/:id`, `/products/:id`) API and UI exist; the reviews API/UI and review model (`v0.3.0`) and the cross-stack code review pass (`docs/agent/code-review.md`) are implemented and verified across unit, PostgreSQL integration, and Playwright E2E suites.
 
 ## Working process and configuration
 
